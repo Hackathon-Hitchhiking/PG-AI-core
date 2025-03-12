@@ -171,7 +171,7 @@ class DiffusersModel(BaseImageModel):
 
     def generate(self, request: GenerationRequest) -> Image.Image:
         generator = torch.Generator(self.pipeline.device).manual_seed(request.seed) if request.seed else None
-        return self.pipeline(**request.dict(exclude={"seed"}), generator=generator).images[0]
+        return self.pipeline(**request.model_dump(exclude={"seed"}), generator=generator).images[0]
 
 class APIModel(BaseImageModel):
     def __init__(self, config: ModelConfig):
@@ -199,7 +199,7 @@ class APIModel(BaseImageModel):
         response = requests.post(
             self.config.api_base,
             headers={"Authorization": f"Bearer {self.config.api_key}"},
-            json={**request.dict(), **self.config.model_kwargs},
+            json={**request.model_dump(), **self.config.model_kwargs},
             timeout=30
         )
         response.raise_for_status()

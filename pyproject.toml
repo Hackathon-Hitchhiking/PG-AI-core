@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "pg-ai-core"
+version = "0.1.0"
+description = "AI-core for agents to many of projects"
+authors = ["Leonid Chesnikov <leonid.chesnikov@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+transformers = {extras = ["torch"], version = "^4.49.0"}
+diffusers = "^0.32.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
