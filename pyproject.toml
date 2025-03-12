@@ -10,6 +10,15 @@ readme = "README.md"
 python = "^3.12"
 transformers = {extras = ["torch"], version = "^4.49.0"}
 diffusers = "^0.32.2"
+pydantic = "^2.10.6"
+langchain = "^0.3.20"
+llama-cpp-python = "^0.3.8"
+vllm = "^0.7.3"
+llama-index-core = "^0.12.23.post2"
+langchain-core = "^0.3.44"
+langchain-openai = "^0.3.8"
+langchain-huggingface = "^0.1.2"
+llama-index = "^0.12.23"
 
 
 [build-system]
