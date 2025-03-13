@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-transformers = {extras = ["torch"], version = "^4.49.0"}
+transformers = {git = "https://github.com/huggingface/transformers.git"}
 diffusers = "^0.32.2"
 pydantic = "^2.10.6"
 langchain = "^0.3.20"
@@ -19,7 +19,12 @@ langchain-core = "^0.3.44"
 langchain-openai = "^0.3.8"
 langchain-huggingface = "^0.1.2"
 llama-index = "^0.12.23"
+ipykernel = "^6.29.5"
+ipywidgets = "^8.1.5"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
 
 [build-system]
 requires = ["poetry-core"]

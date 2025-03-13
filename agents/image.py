@@ -28,7 +28,7 @@ class ModelConfig(BaseModel):
     pipeline_kwargs: Dict[str, Any] = Field(default_factory=dict)
     api_handler: Optional[str] = Field(None, pattern=r"^[\w\.]+\.\w+$")
 
-    @field_validator("model_name", always=True)
+    @field_validator("model_name")
     def validate_model_name(cls, v, values):
         if values.get("model_type") in ["hf", "diffusers"] and not v:
             raise ValueError("Model name is required for HF/Diffusers models")

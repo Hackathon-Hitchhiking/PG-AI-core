@@ -39,9 +39,10 @@ class TextModelConfig(BaseModel):
     quantized: bool = False
     use_safetensors: bool = True
 
-    @field_validator("model_path", always=True)
+    @field_validator("model_path")
     def validate_model_path(cls, v, values):
-        if values.get("backend") in ["llamacpp", "transformers"] and not v:
+        backend = values.data.get("backend")
+        if backend in ["llamacpp", "transformers"] and not v:
             raise ValueError("Model path is required for this backend")
         return v
 
@@ -62,7 +63,7 @@ class BaseTextModel(ABC):
     def from_config(cls, config: TextModelConfig) -> BaseTextModel:
         pass
 
-class UnifiedTextAgent:
+class TextAgent:
     def __init__(
         self,
         config: TextModelConfig,
@@ -266,7 +267,7 @@ class vLLMModel(BaseTextModel):
     def from_config(cls, config: TextModelConfig) -> vLLMModel:
         return cls(LLM(
             model=config.model_path,
-            tensor_parallel_size=torch.cuda.device_count(),
+            tensor_parallel_size=1 if config.device == "mps" else torch.cuda.device_count(),
             quantization="awq" if config.quantized else None
         ))
 
