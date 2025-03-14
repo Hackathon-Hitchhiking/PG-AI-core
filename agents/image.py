@@ -9,14 +9,13 @@ import requests
 import torch
 from io import BytesIO
 import hashlib
-import json
 import inspect
 
 logger = logging.getLogger(__name__)
 
 ModelType = Literal["hf", "diffusers", "api", "local"]
 
-class ModelConfig(BaseModel):
+class ImageModelConfig(BaseModel):
     model_type: ModelType = Field(..., description="Тип модели")
     model_name: Optional[str] = Field(None, min_length=1)
     api_base: Optional[str] = Field(None, min_length=3)
@@ -30,7 +29,7 @@ class ModelConfig(BaseModel):
 
     @field_validator("model_name")
     def validate_model_name(cls, v, values):
-        if values.get("model_type") in ["hf", "diffusers"] and not v:
+        if values.data.get("model_type") in ["hf", "diffusers"] and not v:
             raise ValueError("Model name is required for HF/Diffusers models")
         return v
 
@@ -58,12 +57,12 @@ class BaseImageModel(ABC):
     
     @classmethod
     @abstractmethod
-    def from_config(cls, config: ModelConfig) -> BaseImageModel:
+    def from_config(cls, config: ImageModelConfig) -> BaseImageModel:
         pass
 
 class ImageAgent:
-    def __init__(self, config: Union[Dict[str, Any], ModelConfig]):
-        self.config = config if isinstance(config, ModelConfig) else ModelConfig(**config)
+    def __init__(self, config: Union[Dict[str, Any], ImageModelConfig]):
+        self.config = config if isinstance(config, ImageModelConfig) else ImageModelConfig(**config)
         self.model = self._init_model()
         self.cache: Dict[str, Image.Image] = {}
         
@@ -126,19 +125,18 @@ class ImageAgent:
         raise RuntimeError("All generation strategies failed")
 
     def _init_fallback_model(self, model_type: ModelType) -> BaseImageModel:
-        return type(self)(ModelConfig(**{**self.config.dict(), "model_type": model_type})).model
+        return type(self)(ImageModelConfig(**{**self.config.dict(), "model_type": model_type})).model
 
 class HuggingFaceModel(BaseImageModel):
     def __init__(self, pipeline: Any):
         self.pipeline = pipeline
 
     @classmethod
-    def from_config(cls, config: ModelConfig) -> HuggingFaceModel:
-        from transformers import pipeline
+    def from_config(cls, config: ImageModelConfig) -> HuggingFaceModel:
+        from diffusers import AutoPipelineForText2Image
         return cls(
-            pipeline(
-                "text-to-image",
-                model=config.model_name,
+            AutoPipelineForText2Image.from_pretrained(
+                pretrained_model_or_path=config.model_name,
                 device=config.device,
                 torch_dtype=getattr(torch, config.torch_dtype),
                 **config.pipeline_kwargs
@@ -146,7 +144,7 @@ class HuggingFaceModel(BaseImageModel):
         )
 
     def generate(self, request: GenerationRequest) -> Image.Image:
-        generator = torch.Generator(device=self.pipeline.device).manual_seed(request.seed) if request.seed else None
+        generator = torch.Generator(device=self.pipeline.device_map).manual_seed(request.seed) if request.seed else None
         result = self.pipeline(
             **request.model_dump(exclude={"seed"}),
             generator=generator
@@ -158,7 +156,7 @@ class DiffusersModel(BaseImageModel):
         self.pipeline = pipeline
 
     @classmethod
-    def from_config(cls, config: ModelConfig) -> DiffusersModel:
+    def from_config(cls, config: ImageModelConfig) -> DiffusersModel:
         from diffusers import DiffusionPipeline
         return cls(
             DiffusionPipeline.from_pretrained(
@@ -174,11 +172,11 @@ class DiffusersModel(BaseImageModel):
         return self.pipeline(**request.model_dump(exclude={"seed"}), generator=generator).images[0]
 
 class APIModel(BaseImageModel):
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ImageModelConfig):
         self.config = config
 
     @classmethod
-    def from_config(cls, config: ModelConfig) -> APIModel:
+    def from_config(cls, config: ImageModelConfig) -> APIModel:
         return cls(config)
 
     def generate(self, request: GenerationRequest) -> Image.Image:
@@ -212,7 +210,7 @@ class APIModel(BaseImageModel):
 
 class LocalModel(BaseImageModel):
     @classmethod
-    def from_config(cls, config: ModelConfig) -> LocalModel:
+    def from_config(cls, config: ImageModelConfig) -> LocalModel:
         raise NotImplementedError("Local models implementation required")
 
     def generate(self, request: GenerationRequest) -> Image.Image:

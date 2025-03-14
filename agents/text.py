@@ -267,7 +267,7 @@ class vLLMModel(BaseTextModel):
     def from_config(cls, config: TextModelConfig) -> vLLMModel:
         return cls(LLM(
             model=config.model_path,
-            tensor_parallel_size=1 if config.device == "mps" else torch.cuda.device_count(),
+            tensor_parallel_size=1 if config.device == "cpu" else torch.cuda.device_count(),
             quantization="awq" if config.quantized else None
         ))
 
