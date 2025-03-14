@@ -111,7 +111,7 @@ class TextAgent:
                 self.config.tokenizer_name or self.config.model_name,
                 use_fast=True
             )
-        except:
+        except Exception:
             return None
 
     def _init_vector_index(self):
@@ -179,8 +179,8 @@ class APITextModel(BaseTextModel):
         if "openai" in config.api_base:
             return cls(OpenAI(api_key=config.api_key))
         if "yandex" in config.api_base:
-          sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
-          return cls(sdk.models.completions('yandexgpt'))
+            sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
+            return cls(sdk.models.completions('yandexgpt'))
         return cls(InferenceClient(model=config.model_name, token=config.api_key))
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
