@@ -11,6 +11,8 @@ from llama_cpp import Llama
 from llama_index.core import VectorStoreIndex
 from llama_index.core import ServiceContext, PromptTemplate, Document
 from transformers import AutoTokenizer, pipeline
+from yandex_cloud_ml_sdk import YCloudML
+from yandex_cloud_ml_sdk._models.completions.model import GPTModel
 from huggingface_hub import InferenceClient
 import warnings
 from vllm import SamplingParams, LLM
@@ -18,13 +20,14 @@ from vllm import SamplingParams, LLM
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
-TextBackend = Literal["hf", "api", "langchain", "llamacpp", "llamaindex", "vllm", "transformers"]
+TextBackend = Literal["hf", "api", "yandexgpt", "langchain", "llamacpp", "llamaindex", "vllm", "transformers"]
 
 class TextModelConfig(BaseModel):
     backend: TextBackend = Field(..., description="Тип бэкенда для текстовой модели")
     model_name: Optional[str] = Field(None, min_length=1)
     api_base: Optional[str] = Field(None, min_length=3)
     api_key: Optional[str] = Field(None, min_length=1)
+    folder_id: Optional[str] = Field(None, min_length=1)
     model_path: Optional[str] = None
     device: str = Field(default="cuda" if torch.cuda.is_available() else "cpu")
     torch_dtype: Literal["auto", "float16", "float32"] = "auto"
@@ -57,7 +60,7 @@ class BaseTextModel(ABC):
     @abstractmethod
     def generate(self, prompt: str, params: GenerationParams) -> str:
         pass
-    
+
     @classmethod
     @abstractmethod
     def from_config(cls, config: TextModelConfig) -> BaseTextModel:
@@ -175,11 +178,16 @@ class APITextModel(BaseTextModel):
     def from_config(cls, config: TextModelConfig) -> APITextModel:
         if "openai" in config.api_base:
             return cls(OpenAI(api_key=config.api_key))
+        if "yandex" in config.api_base:
+          sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
+          return cls(sdk.models.completions('yandexgpt'))
         return cls(InferenceClient(model=config.model_name, token=config.api_key))
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
         if isinstance(self.client, OpenAI):
             return self.client.complete(prompt, **params).text
+        if isinstance(self.client, GPTModel):
+            return str(self.client.run(prompt)[0])
         return self.client.text_generation(
             prompt,
             temperature=params["temperature"],
@@ -267,8 +275,9 @@ class vLLMModel(BaseTextModel):
     def from_config(cls, config: TextModelConfig) -> vLLMModel:
         return cls(LLM(
             model=config.model_path,
-            tensor_parallel_size=1 if config.device == "cpu" else torch.cuda.device_count(),
-            quantization="awq" if config.quantized else None
+            tensor_parallel_size=1 if config.device == "mps" else torch.cuda.device_count(),
+            quantization="awq" if config.quantized else None,
+            dtype=config.torch_dtype,
         ))
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
