@@ -107,7 +107,7 @@ class PPTXHandler:
                     text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
 
                     p = text_frame.add_paragraph()
-                    p.text = textwrap.fill(shape.get("text", ""), width=50)
+                    p.text = textwrap.fill(shape.get("text", ""), width=50)  # Wrap long lines
                     p.font.size = Pt(self.template["default_font"]["size"])
                     p.font.name = self.template["default_font"]["name"]
                     p.font.bold = self.template["default_font"]["bold"]
