@@ -41,6 +41,7 @@ class ImageModelConfig(BaseModel):
     model_name: Optional[str] = Field(None, min_length=1)
     api_base: Optional[str] = Field(None, min_length=3)
     api_key: Optional[str] = Field(None, min_length=1)
+    folder_id: Optional[str] = Field(None, min_length=1)
     device: str = Field(default="cuda" if torch.cuda.is_available() else "cpu")
     torch_dtype: Literal["float16", "float32", "bfloat16"] = "float16"
     revision: Optional[str] = None
@@ -91,13 +92,13 @@ class GenerationRequest(BaseModel):
     height: int = Field(512, ge=64, le=2048)
     num_inference_steps: int = Field(50, ge=1, le=150)
     guidance_scale: float = Field(7.5, ge=0.0, le=20.0)
-    seed: Optional[int] = Field(None, ge=0, le=2**32 - 1)
+    seed: Optional[int] = Field(None, ge=0, le=2 ** 32 - 1)
     output_type: Literal["pil", "latent"] = "pil"
     adapter: Optional[str] = None
     lora_weights: Optional[str] = None
     controlnet: Optional[str] = None
-    
-    
+
+
 class ImageResult(TypedDict):
     """
     Image generation result.
