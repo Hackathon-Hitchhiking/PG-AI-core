@@ -25,6 +25,7 @@ accelerate = "^1.5.2"
 yandex-cloud-ml-sdk = "^0.4.1"
 cachetools = "^5.5.2"
 openai = "^1.66.3"
+python-pptx = "^1.0.2"
 
 
 [tool.poetry.group.dev.dependencies]
