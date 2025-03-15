@@ -160,16 +160,18 @@ class OpenAIModel(BaseImageModel):
 
 
 class YandexAIModel(BaseImageModel):
-    def __init__(self, config: ImageModelConfig):
+    def __init__(self, config: ImageModelConfig, client):
         self.config = config
+        self.client = client
 
     @classmethod
     def from_config(cls, config: ImageModelConfig) -> YandexAIModel:
         sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
-        return cls(sdk.models.yandex_art())
+        client = sdk.models.yandex_art()
+        return cls(config, client)
 
     def generate(self, request: GenerationRequest) -> Image.Image:
-        result = art_model.run(request.prompt)
+        result = self.client.run(request.prompt)
 
         return result[0]
 
