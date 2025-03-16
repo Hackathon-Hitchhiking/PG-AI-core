@@ -1,8 +1,8 @@
 from diffusers import DiffusionPipeline
 import torch
 from PIL import Image
-from schemas.image import DiffusersConfig, GenerationRequest
-from .base import BaseImageModel, ModelRegistry
+from agents.image.schemas import DiffusersConfig, GenerationRequest
+from agents.image.models.base import BaseImageModel, ModelRegistry
 @ModelRegistry.register(DiffusersConfig)
 class DiffusersModel(BaseImageModel):
     def __init__(self, pipeline: DiffusionPipeline, config: DiffusersConfig):

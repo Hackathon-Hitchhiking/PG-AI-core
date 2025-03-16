@@ -1,21 +1,11 @@
 from __future__ import annotations
-from typing import Any, Dict, Type
+import hashlib
 import logging
-import torch
-from langchain.chains.llm import LLMChain
-from langchain_huggingface.llms import HuggingFacePipeline
-from langchain_openai.llms import OpenAI
-from llama_cpp import Llama
-from llama_index.core import VectorStoreIndex
-from llama_index.core import ServiceContext, PromptTemplate, Document
-from transformers import AutoTokenizer, pipeline
-from yandex_cloud_ml_sdk import YCloudML
-from yandex_cloud_ml_sdk._models.completions.model import GPTModel
-from huggingface_hub import InferenceClient
 import warnings
-from vllm import SamplingParams, LLM
-from .base import BaseTextModel
-from schemas.text import GenerationParams, TextBackend, TextModelConfig
+from cachetools import LRUCache
+import orjson
+from agents.text.manager import ModelManager
+from agents.text.schemas import GenerationParams, BaseTextConfig
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -23,7 +13,9 @@ logger = logging.getLogger(__name__)
 class TextAgent:
     def __init__(
         self,
-        config: TextModelConfig,
+        main_config: BaseTextConfig,
+        fallback_configs: list[BaseTextConfig] | None = None,
+        cache_size: int = 100,
         title_params: GenerationParams = {
             "temperature": 0.3,
             "max_new_tokens": 50,
@@ -39,229 +31,62 @@ class TextAgent:
             "stop_sequences": ["\n\n"]
         }
     ):
-        self.config = config
-        self.model = self._init_model()
+        self.manager = ModelManager()
+        self.main_model = self.manager.get_model(main_config)
+        self.fallbacks = fallback_configs or []
+        self.cache = LRUCache(maxsize=cache_size)
         self.title_params = title_params
         self.content_params = content_params
-        self.tokenizer = self._init_tokenizer()
-        self.vector_index = self._init_vector_index()
-        self.logger = logging.getLogger(self.__class__.__name__)
 
-    def _init_model(self) -> BaseTextModel:
-        backend_registry: Dict[TextBackend, Type[BaseTextModel]] = {
-            "hf": HFTextModel,
-            "api": APITextModel,
-            "langchain": LangChainModel,
-            "llamacpp": LlamaCppModel,
-            "llamaindex": LlamaIndexModel,
-            "vllm": vLLMModel,
-            "transformers": TransformersModel
+    def _generate_cache_key(self, prompt: str, params: GenerationParams) -> str:
+        request_data = {
+            "prompt": prompt,
+            **{k: v for k, v in params.items() if k != "seed"}
         }
-        return backend_registry[self.config.backend].from_config(self.config)
+        return hashlib.sha256(
+            orjson.dumps(request_data, option=orjson.OPT_SORT_KEYS)
+        ).hexdigest()
 
-    def _init_tokenizer(self):
+    def generate(self, prompt: str, params: GenerationParams) -> str:
+        """Генерирует текст с использованием основной или запасной модели"""
+        cache_key = self._generate_cache_key(prompt, params)
+        
+        if cache_key in self.cache:
+            logger.debug("Returning cached result")
+            return self.cache[cache_key]
+
         try:
-            return AutoTokenizer.from_pretrained(
-                self.config.tokenizer_name or self.config.model_name,
-                use_fast=True
-            )
-        except Exception:
-            return None
+            result = self.main_model.generate(prompt, params)
+            self.cache[cache_key] = result
+            return result
+        except Exception as e:
+            logger.error(f"Main model failed: {str(e)}")
+            return self._try_fallbacks(prompt, params, cache_key)
 
-    def _init_vector_index(self):
-        if self.config.vector_store and self.config.backend == "llamaindex":
-            return VectorStoreIndex.from_vector_store(self.config.vector_store)
-        return None
+    def _try_fallbacks(self, prompt: str, params: GenerationParams, cache_key: str) -> str:
+        """Пытается использовать запасные модели при сбое основной"""
+        for fallback_config in self.fallbacks:
+            try:
+                model = self.manager.get_model(fallback_config)
+                result = model.generate(prompt, params)
+                self.cache[cache_key] = result
+                logger.info(f"Fallback {type(fallback_config).__name__} succeeded")
+                return result
+            except Exception as e:
+                logger.warning(f"Fallback failed: {str(e)}")
+        
+        raise RuntimeError("All generation attempts failed")
 
     def generate_title(self, context: str) -> str:
+        """Генерирует заголовок для заданного контекста"""
         augmented_prompt = f"Generate concise title for: {context}"
-        return self._process_output(
-            self.model.generate(augmented_prompt, self.title_params),
-            self.title_params
-        )
+        return self.generate(augmented_prompt, self.title_params)
 
     def generate_content(self, context: str, format_hint: str = "paragraph") -> str:
+        """Генерирует контент с указанным форматом"""
         augmented_prompt = f"Generate detailed {format_hint} about: {context}"
-        if self.vector_index:
-            augmented_prompt += f"\nRelevant context: {self._get_related_context(context)}"
-        return self._process_output(
-            self.model.generate(augmented_prompt, self.content_params),
-            self.content_params
-        )
+        return self.generate(augmented_prompt, self.content_params)
 
-    def _get_related_context(self, query: str) -> str:
-        return self.vector_index.query(query, similarity_top_k=3).response
-
-    def _process_output(self, text: str, params: GenerationParams) -> str:
-        if self.tokenizer:
-            tokens = self.tokenizer.encode(text)
-            text = self.tokenizer.decode(tokens[:params["max_new_tokens"]])
-        return text.split(params["stop_sequences"][0])[0].strip()
-
-class HFTextModel(BaseTextModel):
-    def __init__(self, pipeline: Any):
-        self.pipeline = pipeline
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> HFTextModel:
-        pipe = pipeline(
-            "text-generation",
-            model=config.model_name,
-            device=config.device,
-            torch_dtype=config.torch_dtype,
-            max_length=config.context_length
-        )
-        return cls(pipe)
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        output = self.pipeline(
-            prompt,
-            temperature=params["temperature"],
-            max_new_tokens=params["max_new_tokens"],
-            top_p=params["top_p"],
-            repetition_penalty=params["repetition_penalty"],
-            pad_token_id=self.pipeline.tokenizer.eos_token_id
-        )
-        return output[0]["generated_text"]
-
-class APITextModel(BaseTextModel):
-    def __init__(self, client: Any):
-        self.client = client
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> APITextModel:
-        if "openai" in config.api_base:
-            return cls(OpenAI(api_key=config.api_key))
-        if "yandex" in config.api_base:
-            sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
-            return cls(sdk.models.completions('yandexgpt'))
-        return cls(InferenceClient(model=config.model_name, token=config.api_key))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        if isinstance(self.client, OpenAI):
-            return self.client.complete(prompt, **params).text
-        if isinstance(self.client, GPTModel):
-            return str(self.client.run(prompt)[0])
-        return self.client.text_generation(
-            prompt,
-            temperature=params["temperature"],
-            max_new_tokens=params["max_new_tokens"],
-            top_p=params["top_p"],
-            repetition_penalty=params["repetition_penalty"]
-        )
-
-class LangChainModel(BaseTextModel):
-    def __init__(self, chain: LLMChain):
-        self.chain = chain
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> LangChainModel:
-        llm = HuggingFacePipeline.from_model_id(
-            model_id=config.model_name,
-            task="text-generation",
-            device=config.device,
-            pipeline_kwargs={
-                "max_length": config.context_length,
-                "temperature": config.temperature
-            }
-        )
-        template = config.langchain_template or "{input}"
-        return cls(LLMChain(llm=llm, prompt=PromptTemplate.from_template(template)))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        return self.chain.run(
-            input=prompt,
-            temperature=params["temperature"],
-            max_length=params["max_new_tokens"]
-        )
-
-class LlamaCppModel(BaseTextModel):
-    def __init__(self, llm: Llama):
-        self.llm = llm
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> LlamaCppModel:
-        return cls(Llama(
-            model_path=config.model_path,
-            n_ctx=config.context_length,
-            n_gpu_layers=-1 if torch.cuda.is_available() else 0,
-            **config.llamacpp_params
-        ))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        output = self.llm(
-            prompt,
-            temperature=params["temperature"],
-            max_tokens=params["max_new_tokens"],
-            top_p=params["top_p"],
-            repeat_penalty=params["repetition_penalty"],
-            stop=params["stop_sequences"]
-        )
-        return output["choices"][0]["text"]
-
-class LlamaIndexModel(BaseTextModel):
-    def __init__(self, service_context: ServiceContext):
-        self.service_context = service_context
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> LlamaIndexModel:
-        llm = ServiceContext.from_defaults(llm=HuggingFacePipeline.from_model_id(
-            model_id=config.model_name,
-            task="text-generation",
-            device=config.device
-        ))
-        return cls(ServiceContext.from_defaults(llm_predictor=llm))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        index = VectorStoreIndex.from_documents([Document(prompt)])
-        return index.query(
-            prompt,
-            service_context=self.service_context,
-            similarity_top_k=3,
-            response_mode="compact"
-        ).response
-
-class vLLMModel(BaseTextModel):
-    def __init__(self, engine: Any):
-        self.engine = engine
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> vLLMModel:
-        return cls(LLM(
-            model=config.model_path,
-            tensor_parallel_size=1 if config.device == "mps" else torch.cuda.device_count(),
-            quantization="awq" if config.quantized else None,
-            dtype=config.torch_dtype,
-        ))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        sampling_params = SamplingParams(
-            temperature=params["temperature"],
-            max_tokens=params["max_new_tokens"],
-            top_p=params["top_p"],
-            repetition_penalty=params["repetition_penalty"]
-        )
-        outputs = self.engine.generate([prompt], sampling_params)
-        return outputs[0].outputs[0].text
-
-class TransformersModel(BaseTextModel):
-    def __init__(self, model: Any):
-        self.model = model
-
-    @classmethod
-    def from_config(cls, config: TextModelConfig) -> TransformersModel:
-        from transformers import AutoModelForCausalLM
-        return cls(AutoModelForCausalLM.from_pretrained(
-            config.model_path,
-            model_type="llama",
-            gpu_layers=50 if torch.cuda.is_available() else 0
-        ))
-
-    def generate(self, prompt: str, params: GenerationParams) -> str:
-        return self.model(
-            prompt,
-            temperature=params["temperature"],
-            max_new_tokens=params["max_new_tokens"],
-            top_p=params["top_p"],
-            repetition_penalty=params["repetition_penalty"]
-        )
+    def clear_cache(self):
+        """Очищает кэш результатов"""
+        self.cache.clear()

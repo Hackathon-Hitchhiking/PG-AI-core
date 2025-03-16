@@ -3,7 +3,7 @@ import orjson
 from typing import Any
 from cachetools import LRUCache
 from agents.image.models import ModelRegistry, BaseImageModel
-from schemas.image import BaseImageConfig
+from agents.image.schemas import BaseImageConfig
 
 class ModelManager:
     def __init__(self, max_size: int = 10):

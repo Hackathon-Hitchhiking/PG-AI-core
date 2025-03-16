@@ -2,8 +2,8 @@ from yandex_cloud_ml_sdk import YCloudML
 from PIL import Image
 from io import BytesIO
 import logging
-from schemas.image import YandexConfig, GenerationRequest
-from .base import BaseImageModel, ModelRegistry
+from agents.image.schemas import YandexConfig, GenerationRequest
+from agents.image.models.base import BaseImageModel, ModelRegistry
 
 from yandex_cloud_ml_sdk._models.image_generation.model import ImageGenerationModel
 

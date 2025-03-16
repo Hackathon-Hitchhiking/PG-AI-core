@@ -5,8 +5,8 @@ import openai
 import requests
 from io import BytesIO
 from PIL import Image
-from schemas.image import OpenAIConfig, GenerationRequest
-from .base import BaseImageModel, ModelRegistry
+from agents.image.schemas import OpenAIConfig, GenerationRequest
+from agents.image.models.base import BaseImageModel, ModelRegistry
 
 @ModelRegistry.register(OpenAIConfig)
 class OpenAIModel(BaseImageModel):
