@@ -12,8 +12,7 @@ from cachetools import LRUCache
 from PIL import Image
 from io import BytesIO
 from yandex_cloud_ml_sdk import YCloudML
-
-from agents.base import BaseImageModel
+from .base import BaseImageModel
 from schemas.image import GenerationRequest, ImageModelConfig, ModelType
 
 logger = logging.getLogger(__name__)
