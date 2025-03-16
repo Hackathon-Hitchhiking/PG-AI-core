@@ -5,6 +5,9 @@ dev = [
 
 [tool.pdm.build]
 includes = []
+
+[tool.uv.workspace]
+members = ["venv"]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
