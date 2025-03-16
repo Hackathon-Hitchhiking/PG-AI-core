@@ -179,3 +179,5 @@ class PPTXHandler:
                         series.format.fill.fore_color.rgb = RGBColor(0, 0, 255)
 
             prs.save(output_pptx_path)
+
+
