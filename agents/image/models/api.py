@@ -2,21 +2,22 @@
 import requests
 from PIL import Image
 from io import BytesIO
-from pydantic import HttpUrl
 from schemas.image import APIConfig, GenerationRequest
-from .base import BaseImageModel, ModelRegistry, ModelType
+from .base import BaseImageModel, ModelRegistry
 
-@ModelRegistry.register(ModelType.API)
+@ModelRegistry.register(APIConfig)
 class APIModel(BaseImageModel):
-    def __init__(self, config: APIConfig):
-        self.config = config
-        self.session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=config.max_retries)
-        self.session.mount("https://", adapter)
+    def __init__(self, session: requests.Session, config: APIConfig):
+        self.session = session
+        self.config: APIConfig = config
 
     @classmethod
     def from_config(cls, config: APIConfig) -> "APIModel":
-        return cls(config)
+        session = requests.Session()
+        session.headers.update(config.headers)
+        if config.api_key:
+            session.headers["Authorization"] = f"Bearer {config.api_key.get_secret_value()}"
+        return cls(session, config)
 
     def generate(self, request: GenerationRequest) -> Image.Image:
         if self.config.method == "GET":
@@ -24,23 +25,17 @@ class APIModel(BaseImageModel):
         return self._handle_post(request)
 
     def _handle_get(self, request: GenerationRequest) -> Image.Image:
-        url = HttpUrl(f"{self.config.api_base}?prompt={requests.utils.quote(request.prompt)}")
         response = self.session.get(
-            url,
-            headers={"Authorization": f"Bearer {self.config.api_key}"} if self.config.api_key else None,
+            self.config.api_base,
+            params={"prompt": request.prompt},
             timeout=self.config.timeout
         )
         return self._process_response(response)
 
     def _handle_post(self, request: GenerationRequest) -> Image.Image:
-        payload = {
-            **request.model_dump(exclude_none=True),
-            **self.config.model_extra
-        }
         response = self.session.post(
             self.config.api_base,
-            json=payload,
-            headers={"Authorization": f"Bearer {self.config.api_key}"},
+            json=request.model_dump(),
             timeout=self.config.timeout
         )
         return self._process_response(response)
@@ -50,14 +45,14 @@ class APIModel(BaseImageModel):
         json_data = response.json()
         
         # Traverse JSON path
-        image_url = json_data
+        result = json_data
         for key in self.config.response_json_path:
-            if isinstance(image_url, list) and key.isdigit():
-                image_url = image_url[int(key)]
+            if isinstance(result, list) and isinstance(key, int):
+                result = result[key]
             else:
-                image_url = image_url.get(key)
+                result = result.get(str(key))
         
-        return self._download_image(image_url)
+        return self._download_image(result)
 
     def _download_image(self, url: str) -> Image.Image:
         response = self.session.get(url, timeout=self.config.timeout)

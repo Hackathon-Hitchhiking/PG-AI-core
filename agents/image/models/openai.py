@@ -1,21 +1,23 @@
 # agents/image/models/openai.py
 import base64
-import requests
-from PIL import Image
-from io import BytesIO
+from typing import Any
 import openai
+import requests
+from io import BytesIO
+from PIL import Image
 from schemas.image import OpenAIConfig, GenerationRequest
-from .base import BaseImageModel, ModelRegistry, ModelType
+from .base import BaseImageModel, ModelRegistry
 
-@ModelRegistry.register(ModelType.OPENAI)
+@ModelRegistry.register(OpenAIConfig)
 class OpenAIModel(BaseImageModel):
-    def __init__(self, config: OpenAIConfig):
-        self.config = config
-        self.client = openai.Client(api_key=config.api_key.get_secret_value())
+    def __init__(self, client: Any, config: OpenAIConfig):
+        self.client: openai.Client = client
+        self.config: OpenAIConfig = config
 
     @classmethod
     def from_config(cls, config: OpenAIConfig) -> "OpenAIModel":
-        return cls(config)
+        client = openai.Client(api_key=config.api_key.get_secret_value())
+        return cls(client, config)
 
     def generate(self, request: GenerationRequest) -> Image.Image:
         response = self.client.images.generate(
@@ -29,8 +31,7 @@ class OpenAIModel(BaseImageModel):
         )
 
         if self.config.response_format == "url":
-            image_url = response.data[0].url
-            return self._download_image(image_url)
+            return self._download_image(response.data[0].url)
         else:
             return Image.open(BytesIO(base64.b64decode(response.data[0].b64_json)))
 

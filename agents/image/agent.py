@@ -1,63 +1,72 @@
 # agents/image/agent.py
 import hashlib
 import logging
-from PIL import Image
 from cachetools import LRUCache
+from PIL import Image
 import orjson
-from pydantic import BaseModel
-from schemas.image import GenerationRequest, ImageModelConfig
-from agents.image.manager import ModelManager
+from .manager import ModelManager
+from schemas.image import GenerationRequest, BaseImageConfig
 
 logger = logging.getLogger(__name__)
-
-class FallbackStrategy(BaseModel):
-    config: ImageModelConfig
-    priority: int = 0
 
 class ImageAgent:
     def __init__(
         self,
-        main_config: ImageModelConfig,
-        fallbacks: list[FallbackStrategy] | None = None,
-        max_cache_size: int = 100
+        main_config: BaseImageConfig,
+        fallback_configs: list[BaseImageConfig] | None = None,
+        cache_size: int = 100
     ):
-        self.main_config = main_config
-        self.fallbacks = sorted(
-            fallbacks or [], 
-            key=lambda x: x.priority, 
-            reverse=True
-        )
-        self.manager = ModelManager(max_cache_size=max_cache_size)
-        self.request_cache = LRUCache(maxsize=max_cache_size)
+        """
+        Args:
+            main_config: Основная конфигурация модели
+            fallback_configs: Список конфигураций для фоллбэка
+            cache_size: Размер кэша результатов
+        """
+        self.manager = ModelManager()
+        self.main_model = self.manager.get_model(main_config)
+        self.fallbacks = fallback_configs or []
+        self.cache = LRUCache(maxsize=cache_size)
 
-    def _request_key(self, request: GenerationRequest) -> str:
+    def _generate_cache_key(self, request: GenerationRequest) -> str:
+        """Генерирует ключ кэша на основе параметров запроса"""
+        request_data = request.model_dump(
+            exclude_none=True,
+            exclude={"seed"}  # Исключаем seed для кэширования
+        )
         return hashlib.sha256(
-            orjson.dumps(request.model_dump(exclude={"seed"}))
+            orjson.dumps(request_data, option=orjson.OPT_SORT_KEYS)
         ).hexdigest()
 
     def generate(self, request: GenerationRequest) -> Image.Image:
-        cache_key = self._request_key(request)
+        """Выполняет генерацию изображения с кэшированием и фоллбэком"""
+        cache_key = self._generate_cache_key(request)
         
-        if cache_key in self.request_cache:
-            return self.request_cache[cache_key]
+        if cache_key in self.cache:
+            logger.debug("Returning cached result")
+            return self.cache[cache_key]
 
         try:
-            model = self.manager.get_model(self.main_config)
-            image = model.generate(request)
-            self.request_cache[cache_key] = image
-            return image
+            result = self.main_model.generate(request)
+            self.cache[cache_key] = result
+            return result
         except Exception as e:
-            logger.error(f"Main model failed: {e}")
-            return self._handle_fallback(request, cache_key)
+            logger.error(f"Main model failed: {str(e)}")
+            return self._try_fallbacks(request, cache_key)
 
-    def _handle_fallback(self, request: GenerationRequest, cache_key: str) -> Image.Image:
-        for strategy in self.fallbacks:
+    def _try_fallbacks(self, request: GenerationRequest, cache_key: str) -> Image.Image:
+        """Пытается использовать фоллбэк-модели"""
+        for fallback_config in self.fallbacks:
             try:
-                model = self.manager.get_model(strategy.config)
-                image = model.generate(request)
-                self.request_cache[cache_key] = image
-                return image
+                model = self.manager.get_model(fallback_config)
+                result = model.generate(request)
+                self.cache[cache_key] = result
+                logger.info(f"Fallback {type(fallback_config).__name__} succeeded")
+                return result
             except Exception as e:
-                logger.warning(f"Fallback {strategy.config.model_type} failed: {e}")
+                logger.warning(f"Fallback failed: {str(e)}")
         
-        raise RuntimeError("All image generation attempts failed")
+        raise RuntimeError("All generation attempts failed")
+
+    def clear_cache(self):
+        """Очищает кэш результатов"""
+        self.cache.clear()

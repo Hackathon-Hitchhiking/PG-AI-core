@@ -1,30 +1,31 @@
-# agents/image/models/base.py
 from abc import ABC, abstractmethod
+from typing import Type, Any
+from pydantic import BaseModel
 from PIL import Image
-from schemas.image import GenerationRequest, ImageModelConfig, ModelType
 
 class BaseImageModel(ABC):
-    @abstractmethod
-    def generate(self, request: GenerationRequest) -> Image.Image:
-        pass
-
     @classmethod
     @abstractmethod
-    def from_config(cls, config: ImageModelConfig) -> "BaseImageModel":
+    def from_config(cls, config: BaseModel) -> "BaseImageModel":
+        pass
+
+    @abstractmethod
+    def generate(self, request: Any) -> Image.Image:
         pass
 
 class ModelRegistry:
-    _registry: dict[ModelType, type[BaseImageModel]] = {}
+    _registry: dict[Type[BaseModel], Type[BaseImageModel]] = {}
 
     @classmethod
-    def register(cls, model_type: ModelType):
-        def decorator(model_cls: type[BaseImageModel]):
-            cls._registry[model_type] = model_cls
-            return model_cls
+    def register(cls, config_type: Type[BaseModel]):
+        def decorator(model_class: Type[BaseImageModel]):
+            cls._registry[config_type] = model_class
+            return model_class
         return decorator
 
     @classmethod
-    def get_model_class(cls, model_type: ModelType) -> type[BaseImageModel]:
-        if model_type not in cls._registry:
-            raise ValueError(f"Model type {model_type} not registered")
-        return cls._registry[model_type]
+    def get_model_class(cls, config: BaseModel) -> Type[BaseImageModel]:
+        config_type = type(config)
+        if config_type not in cls._registry:
+            raise ValueError(f"No model registered for config type {config_type}")
+        return cls._registry[config_type]
