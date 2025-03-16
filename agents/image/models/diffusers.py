@@ -1,30 +1,27 @@
+from diffusers import DiffusionPipeline
 import torch
 from PIL import Image
-from typing import Any
 from schemas.image import DiffusersConfig, GenerationRequest
 from .base import BaseImageModel, ModelRegistry
-from diffusers import AutoPipelineForText2Image
-
 @ModelRegistry.register(DiffusersConfig)
 class DiffusersModel(BaseImageModel):
-    def __init__(self, pipeline: Any, config: DiffusersConfig):
-        self.pipeline: AutoPipelineForText2Image = pipeline
+    def __init__(self, pipeline: DiffusionPipeline, config: DiffusersConfig):
+        self.pipeline: DiffusionPipeline = pipeline
         self.config: DiffusersConfig = config
 
     @classmethod
     def from_config(cls, config: DiffusersConfig) -> "DiffusersModel":
-        from diffusers import AutoPipelineForText2Image  # Lazy import
-        
-        torch_dtype = getattr(torch, config.torch_dtype)
-        device = config.device.value  # Получаем строковое значение enum
 
-        pipeline = AutoPipelineForText2Image.from_pretrained(
+        pipeline = DiffusionPipeline.from_pretrained(
             config.model_name,
-            torch_dtype=torch_dtype,
-            revision=config.revision,
+            torch_dtype=getattr(torch, config.torch_dtype),
             **config.pipeline_kwargs
-        ).to(device)
+        )
 
+
+        # Применяем оптимизации
+        pipeline = pipeline.to(config.device.value)
+        
         if config.enable_xformers:
             pipeline.enable_xformers_memory_efficient_attention()
 
