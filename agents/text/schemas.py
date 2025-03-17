@@ -169,6 +169,21 @@ class YandexConfig(BaseTextConfig):
         examples=["yandexgpt-lite", "yandexgpt"]
     )
 
+class ContentStyle(str, Enum):
+    ARTICLE = "article"      # Длинная, детальная статья
+    PRESENTATION = "presentation"  # Краткая, яркая подача
+    BLOG = "blog"           # Неформальный, средний объем
+    ACADEMIC = "academic"   # Научный стиль
+    MARKETING = "marketing" # Продающий текст
+    NEWS = "news"          # Новостной формат
+
+class ContentTone(str, Enum):
+    FORMAL = "formal"
+    CASUAL = "casual"
+    PROFESSIONAL = "professional"
+    FRIENDLY = "friendly"
+    ENTHUSIASTIC = "enthusiastic"
+
 class GenerationParams(TypedDict, total=False):
     prompt: str
     temperature: float = 0.7
@@ -184,3 +199,6 @@ class GenerationParams(TypedDict, total=False):
     frequency_penalty: float = 0.0
     truncate: bool = False
     skip_special_tokens: bool = True
+    style: ContentStyle = ContentStyle.ARTICLE
+    tone: ContentTone = ContentTone.PROFESSIONAL
+    length: Literal["short", "medium", "long"] = "medium"

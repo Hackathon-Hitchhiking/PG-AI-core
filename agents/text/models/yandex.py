@@ -20,14 +20,19 @@ class YandexModel(BaseTextModel):
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
         try:
-            generation_params = {
-                "temperature": params["temperature"],
-                "max_tokens": params["max_new_tokens"],
-                "stream": False
-            }
+            messages = [{"role": "user", "text": prompt}]
             
-            result = self.model.run(prompt, **generation_params)
-            return str(result[0]) if result else ""
+            config_params = {}
+            if "max_new_tokens" in params:
+                config_params["max_tokens"] = params["max_new_tokens"]
+            if "temperature" in params:
+                config_params["temperature"] = params["temperature"]
+                
+            configured_model = self.model.configure(**config_params)
+            result = configured_model.run(messages=messages)
+            
+            # Get text directly from the alternative
+            return result.alternatives[0].text if result and result.alternatives else ""
             
         except Exception as e:
             logger.error(f"Yandex generation failed: {str(e)}")

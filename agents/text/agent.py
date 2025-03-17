@@ -5,7 +5,13 @@ import warnings
 from cachetools import LRUCache
 import orjson
 from agents.text.manager import ModelManager
-from agents.text.schemas import GenerationParams, BaseTextConfig
+from agents.text.schemas import (
+    GenerationParams, 
+    BaseTextConfig,
+    ContentStyle,
+    ContentTone
+)
+from utils.prompt_library import PromptLibrary
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -16,27 +22,12 @@ class TextAgent:
         main_config: BaseTextConfig,
         fallback_configs: list[BaseTextConfig] | None = None,
         cache_size: int = 100,
-        title_params: GenerationParams = {
-            "temperature": 0.3,
-            "max_new_tokens": 50,
-            "top_p": 0.9,
-            "repetition_penalty": 1.2,
-            "stop_sequences": ["\n"]
-        },
-        content_params: GenerationParams = {
-            "temperature": 0.7,
-            "max_new_tokens": 500,
-            "top_p": 0.95,
-            "repetition_penalty": 1.1,
-            "stop_sequences": ["\n\n"]
-        }
     ):
         self.manager = ModelManager()
         self.main_model = self.manager.get_model(main_config)
         self.fallbacks = fallback_configs or []
         self.cache = LRUCache(maxsize=cache_size)
-        self.title_params = title_params
-        self.content_params = content_params
+        self.prompt_library = PromptLibrary()
 
     def _generate_cache_key(self, prompt: str, params: GenerationParams) -> str:
         request_data = {
@@ -77,15 +68,66 @@ class TextAgent:
         
         raise RuntimeError("All generation attempts failed")
 
-    def generate_title(self, context: str) -> str:
-        """Генерирует заголовок для заданного контекста"""
-        augmented_prompt = f"Generate concise title for: {context}"
-        return self.generate(augmented_prompt, self.title_params)
+    def generate_title(self, context: str, params: GenerationParams | None = None) -> str:
+        """Генерирует заголовок с учетом стиля и тона"""
+        base_params: GenerationParams = {
+            "temperature": 0.3,
+            "max_new_tokens": 50,
+            "top_p": 0.9,
+            "repetition_penalty": 1.2,
+            "stop_sequences": ["\n"],
+            "style": ContentStyle.ARTICLE,
+            "tone": ContentTone.PROFESSIONAL
+        }
+        if params:
+            base_params.update(params)
 
-    def generate_content(self, context: str, format_hint: str = "paragraph") -> str:
-        """Генерирует контент с указанным форматом"""
-        augmented_prompt = f"Generate detailed {format_hint} about: {context}"
-        return self.generate(augmented_prompt, self.content_params)
+        prompt = self.prompt_library.get_prompt(
+            'title',
+            context=context,
+            style=base_params['style'],
+            tone=base_params['tone']
+        )
+
+        return self.generate(prompt, base_params)
+
+    def generate_content(
+        self, 
+        context: str, 
+        params: GenerationParams | None = None,
+        format_hint: str = "текст"
+    ) -> str:
+        """Генерирует контент с учетом стиля, тона и формата"""
+        base_params: GenerationParams = {
+            "temperature": 0.7,
+            "max_new_tokens": 500,
+            "top_p": 0.95,
+            "repetition_penalty": 1.1,
+            "stop_sequences": ["\n\n"],
+            "style": ContentStyle.ARTICLE,
+            "tone": ContentTone.PROFESSIONAL,
+            "length": "medium"
+        }
+        if params:
+            base_params.update(params)
+
+        length = base_params.get('length', 'medium')
+        length_tokens = {
+            "short": 150,
+            "medium": 500,
+            "long": 1000
+        }
+        base_params["max_new_tokens"] = length_tokens[length]
+
+        prompt = self.prompt_library.get_prompt(
+            'content',
+            context=context,
+            style=base_params['style'],
+            tone=base_params['tone'],
+            format_hint=format_hint
+        )
+
+        return self.generate(prompt, base_params)
 
     def clear_cache(self):
         """Очищает кэш результатов"""
