@@ -111,13 +111,14 @@ class TextAgent:
         if params:
             base_params.update(params)
 
-        length = base_params.get('length', 'medium')
-        length_tokens = {
-            "short": 150,
-            "medium": 500,
-            "long": 1000
-        }
-        base_params["max_new_tokens"] = length_tokens[length]
+        if not params or 'max_new_tokens' not in params:
+            length = base_params.get('length', 'medium')
+            length_tokens = {
+                "short": 150,
+                "medium": 500,
+                "long": 1000
+            }
+            base_params["max_new_tokens"] = length_tokens[length]
 
         prompt = self.prompt_library.get_prompt(
             'content',
