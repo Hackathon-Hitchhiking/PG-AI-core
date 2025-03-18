@@ -9,8 +9,8 @@ from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
 import textwrap
 
-from .utils import rgb_to_hex, hex_to_rgb, resolve_chart_type
-from .models import Coordinates, FontStyle, TextShape, ImageShape, ChartSeries, ChartShape, Slide, PresentationInfo
+from tools.pptx import rgb_to_hex, hex_to_rgb, resolve_chart_type
+from tools.schemas import Coordinates, FontStyle, TextShape, ImageShape, ChartSeries, ChartShape, Slide, PresentationInfo
 
 
 class PPTXHandler:
