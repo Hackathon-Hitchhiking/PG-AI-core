@@ -1,14 +1,12 @@
 from __future__ import annotations
+
 from enum import Enum
 from typing import Any, Literal
-from pydantic import (
-    BaseModel, 
-    Field, 
-    model_validator,
-    ConfigDict,
-    SecretStr
-)
+
 import torch
+
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+
 
 class DeviceType(str, Enum):
     AUTO = "auto"
@@ -29,7 +27,7 @@ class BaseImageConfig(BaseModel):
     def _detect_device(self) -> DeviceType:
         if torch.cuda.is_available():
             return DeviceType.CUDA
-        elif torch.backends.mps.is_available():
+        if torch.backends.mps.is_available():
             return DeviceType.MPS
         return DeviceType.CPU
 
@@ -49,7 +47,7 @@ class DiffusersConfig(BaseImageConfig):
     )
 
     @model_validator(mode="after")
-    def validate_device(self) -> "DiffusersConfig":
+    def validate_device(self) -> DiffusersConfig:
         if self.device == DeviceType.AUTO:
             if torch.cuda.is_available():
                 self.device = DeviceType.CUDA
@@ -109,7 +107,7 @@ class APIConfig(BaseImageConfig):
 class GenerationRequest(BaseModel):
     """Универсальный запрос для генерации изображений"""
     prompt: str = Field(
-        ..., 
+        ...,
         min_length=1,
         max_length=2000,
         examples=["A futuristic cityscape at sunset"]

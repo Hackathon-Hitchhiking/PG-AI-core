@@ -1,13 +1,17 @@
 # agents/image/models/api.py
-import requests
-from PIL import Image
 from io import BytesIO
-from agents.image.schemas import APIConfig, GenerationRequest
+
+import requests
+
+from PIL import Image
+
 from agents.image.models.base import BaseImageModel, ModelRegistry
+from agents.image.schemas import APIConfig, GenerationRequest
+
 
 @ModelRegistry.register(APIConfig)
 class APIModel(BaseImageModel):
-    def __init__(self, session: requests.Session, config: APIConfig):
+    def __init__(self, session: requests.Session, config: APIConfig) -> None:
         self.session = session
         self.config: APIConfig = config
 
@@ -43,15 +47,12 @@ class APIModel(BaseImageModel):
     def _process_response(self, response: requests.Response) -> Image.Image:
         response.raise_for_status()
         json_data = response.json()
-        
+
         # Traverse JSON path
         result = json_data
         for key in self.config.response_json_path:
-            if isinstance(result, list) and isinstance(key, int):
-                result = result[key]
-            else:
-                result = result.get(str(key))
-        
+            result = result[key] if isinstance(result, list) and isinstance(key, int) else result.get(str(key))
+
         return self._download_image(result)
 
     def _download_image(self, url: str) -> Image.Image:

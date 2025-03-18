@@ -1,15 +1,18 @@
 import hashlib
 import logging
-from typing import Optional
+
 from pathlib import Path
+
+import orjson
+
 from cachetools import LRUCache
 from PIL import Image
-import orjson
 from pydantic import ValidationError
 
-from agents.image.manager import ModelManager
-from agents.image.schemas import GenerationRequest, BaseImageConfig
 from agents.image.exceptions import ImageGenerationError
+from agents.image.manager import ModelManager
+from agents.image.schemas import BaseImageConfig, GenerationRequest
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +20,12 @@ class ImageAgent:
     def __init__(
         self,
         main_config: BaseImageConfig,
-        fallback_configs: Optional[list[BaseImageConfig]] = None,
+        fallback_configs: list[BaseImageConfig] | None = None,
         cache_size: int = 100,
-        cache_dir: Optional[Path] = None
-    ):
+        cache_dir: Path | None = None
+    ) -> None:
         """Initialize ImageAgent with configs and caching.
-        
+
         Args:
             main_config: Primary model configuration
             fallback_configs: List of fallback model configurations
@@ -33,16 +36,17 @@ class ImageAgent:
         try:
             self.main_model = self.manager.get_model(main_config)
         except Exception as e:
-            logger.error(f"Failed to initialize main model: {e}")
-            raise ImageGenerationError("Main model initialization failed") from e
+            logger.exception("Failed to initialize main model")
+            msg = "Main model initialization failed"
+            raise ImageGenerationError(msg) from e
 
         self.fallbacks = []
         if fallback_configs:
-            for config in fallback_configs:
-                try:
+            try:
+                for config in fallback_configs:
                     self.fallbacks.append(self.manager.get_model(config))
-                except Exception as e:
-                    logger.warning(f"Failed to initialize fallback model: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize fallback model: {e}")
 
         self.cache = LRUCache(maxsize=cache_size)
         self.cache_dir = cache_dir
@@ -59,51 +63,49 @@ class ImageAgent:
 
     def generate(self, request: GenerationRequest, retry_count: int = 2) -> Image.Image:
         """Generate image from request with retries and fallbacks.
-        
+
         Args:
             request: Image generation parameters
             retry_count: Number of retries for transient failures
-            
+
         Returns:
             Generated PIL Image
-            
+
         Raises:
             ImageGenerationError: If generation fails after retries and fallbacks
         """
         try:
             request.validate()
         except ValidationError as e:
-            logger.error(f"Invalid generation request: {e}")
-            raise ImageGenerationError("Invalid request parameters") from e
+            logger.exception("Invalid generation request")
+            msg = "Invalid request parameters"
+            raise ImageGenerationError(msg) from e
 
         cache_key = self._generate_cache_key(request)
         if cache_key in self.cache:
             logger.debug("Returning cached result")
             return self.cache[cache_key]
 
-        for attempt in range(retry_count):
-            try:
-                image = self.main_model.generate(request)
-                self.cache[cache_key] = image
-                return image
-            except Exception as e:
-                logger.warning(f"Main model failed (attempt {attempt+1}): {e}")
-                
-                if attempt == retry_count - 1:
-                    break
+        attempt = 0
+        while attempt < retry_count:
+            image = self.main_model.generate(request)
+            self.cache[cache_key] = image
+            return image
+        attempt += 1
 
         # Try fallbacks
-        for fallback in self.fallbacks:
-            try:
+        try:
+            for fallback in self.fallbacks:
                 logger.info(f"Trying fallback model: {fallback.__class__.__name__}")
                 image = fallback.generate(request)
                 self.cache[cache_key] = image
                 return image
-            except Exception as e:
-                logger.warning(f"Fallback model failed: {e}")
+        except Exception as e:
+            logger.warning(f"All fallback models failed: {e}")
 
-        raise ImageGenerationError("All generation attempts failed")
+        msg = "All generation attempts failed"
+        raise ImageGenerationError(msg)
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Очищает кэш результатов"""
         self.cache.clear()

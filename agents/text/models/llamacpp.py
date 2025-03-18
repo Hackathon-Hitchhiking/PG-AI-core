@@ -1,10 +1,12 @@
 from llama_cpp import Llama
-from agents.text.schemas import LlamaCppConfig, GenerationParams
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, LlamaCppConfig
+
 
 @ModelRegistry.register(LlamaCppConfig)
 class LlamaCppModel(BaseTextModel):
-    def __init__(self, llm: Llama):
+    def __init__(self, llm: Llama) -> None:
         self.llm = llm
 
     @classmethod

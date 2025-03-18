@@ -1,16 +1,18 @@
 from vllm import LLM, SamplingParams
-from agents.text.schemas import vLLMConfig, GenerationParams
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, vLLMConfig
+
 
 @ModelRegistry.register(vLLMConfig)
 class VLLMModel(BaseTextModel):
-    def __init__(self, engine: LLM):
+    def __init__(self, engine: LLM) -> None:
         self.engine = engine
 
     @classmethod
     def from_config(cls, config: vLLMConfig) -> "VLLMModel":
         tensor_parallel = 1 if config.device == "mps" else config.tensor_parallel_size
-        
+
         return cls(LLM(
             model=config.model_path,
             tensor_parallel_size=tensor_parallel,
@@ -32,6 +34,6 @@ class VLLMModel(BaseTextModel):
             repetition_penalty=params["repetition_penalty"],
             stop=params["stop_sequences"]
         )
-        
+
         outputs = self.engine.generate([prompt], sampling_params)
         return outputs[0].outputs[0].text

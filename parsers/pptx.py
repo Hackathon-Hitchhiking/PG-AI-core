@@ -1,21 +1,31 @@
-import os
 import json
-from pptx import Presentation
-from pptx.util import Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.enum.dml import MSO_COLOR_TYPE
-from pptx.chart.data import CategoryChartData
-from pptx.dml.color import RGBColor
+import os
 import textwrap
 
-from tools.pptx import rgb_to_hex, hex_to_rgb, resolve_chart_type
-from tools.schemas import Coordinates, FontStyle, TextShape, ImageShape, ChartSeries, ChartShape, Slide, PresentationInfo
+from pptx import Presentation
+from pptx.chart.data import CategoryChartData
+from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_COLOR_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Pt
+
+from tools.pptx import hex_to_rgb, resolve_chart_type, rgb_to_hex
+from tools.schemas import (
+    ChartSeries,
+    ChartShape,
+    Coordinates,
+    FontStyle,
+    ImageShape,
+    PresentationInfo,
+    Slide,
+    TextShape,
+)
 
 
 class PPTXHandler:
-    def __init__(self, template_json_path):
-        with open(template_json_path, "r", encoding="utf-8") as f:
+    def __init__(self, template_json_path) -> None:
+        with open(template_json_path, encoding="utf-8") as f:
             self.template = json.load(f)["slide_template"]
 
     @staticmethod
@@ -112,7 +122,7 @@ class PPTXHandler:
             slides=slides_data,
         )
 
-    def create_presentation_from_template(self, presentation_info: PresentationInfo, output_pptx_path: str):
+    def create_presentation_from_template(self, presentation_info: PresentationInfo, output_pptx_path: str) -> None:
         prs = Presentation()
         prs.slide_width = Pt(presentation_info.width)
         prs.slide_height = Pt(presentation_info.height)
@@ -174,7 +184,7 @@ class PPTXHandler:
                     )
 
                     chart = chart_shape.chart
-                    for i, series in enumerate(chart.series):
+                    for _i, series in enumerate(chart.series):
                         series.format.fill.solid()
                         series.format.fill.fore_color.rgb = RGBColor(0, 0, 255)
 

@@ -1,5 +1,6 @@
 from parsers.pptx_editor import PPTXEditor
 
+
 if __name__ == "__main__":
     pptx_editor = PPTXEditor()
 

@@ -1,5 +1,5 @@
-import json
 from parsers.pptx import PPTXHandler
+
 
 if __name__ == "__main__":
     handler = PPTXHandler(template_json_path="test_sources/template.json")

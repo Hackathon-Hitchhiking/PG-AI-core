@@ -1,8 +1,12 @@
 from __future__ import annotations
+
 from enum import Enum
-from typing import Any, TypedDict, Literal
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from typing import Any, Literal, TypedDict
+
 import torch
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 
 class DeviceType(str, Enum):
     AUTO = "auto"
@@ -23,7 +27,7 @@ class BaseTextConfig(BaseModel):
     def _detect_device(self) -> DeviceType:
         if torch.cuda.is_available():
             return DeviceType.CUDA
-        elif torch.backends.mps.is_available():
+        if torch.backends.mps.is_available():
             return DeviceType.MPS
         return DeviceType.CPU
 
@@ -44,7 +48,7 @@ class HFConfig(BaseTextConfig):
     )
 
     @model_validator(mode="after")
-    def validate_device(self) -> "HFConfig":
+    def validate_device(self) -> HFConfig:
         if self.device == DeviceType.AUTO:
             if torch.cuda.is_available():
                 self.device = DeviceType.CUDA

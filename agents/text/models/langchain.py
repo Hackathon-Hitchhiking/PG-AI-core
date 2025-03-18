@@ -1,12 +1,14 @@
 from langchain.chains.llm import LLMChain
-from langchain_huggingface.llms import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
-from agents.text.schemas import LangChainConfig, GenerationParams
+from langchain_huggingface.llms import HuggingFacePipeline
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, LangChainConfig
+
 
 @ModelRegistry.register(LangChainConfig)
 class LangChainModel(BaseTextModel):
-    def __init__(self, chain: LLMChain):
+    def __init__(self, chain: LLMChain) -> None:
         self.chain = chain
 
     @classmethod

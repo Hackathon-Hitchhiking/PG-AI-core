@@ -1,11 +1,13 @@
-from llama_index.core import VectorStoreIndex, Document, ServiceContext
 from langchain_huggingface import HuggingFacePipeline
-from agents.text.schemas import LlamaIndexConfig, GenerationParams
+from llama_index.core import Document, ServiceContext, VectorStoreIndex
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, LlamaIndexConfig
+
 
 @ModelRegistry.register(LlamaIndexConfig)
 class LlamaIndexModel(BaseTextModel):
-    def __init__(self, service_context: ServiceContext, config: LlamaIndexConfig):
+    def __init__(self, service_context: ServiceContext, config: LlamaIndexConfig) -> None:
         self.service_context = service_context
         self.config = config
         self.index = None
@@ -30,7 +32,7 @@ class LlamaIndexModel(BaseTextModel):
                 [Document(text=prompt)],
                 service_context=self.service_context
             )
-        
+
         response = self.index.query(
             prompt,
             similarity_top_k=self.config.similarity_top_k,

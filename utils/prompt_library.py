@@ -1,11 +1,14 @@
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
 import yaml
+
 from agents.text.schemas import ContentStyle, ContentTone
+
 
 class PromptLibrary:
     """Библиотека шаблонов промптов для различных задач генерации."""
-    
+
     DEFAULT_TEMPLATES = {
         'title': {
             ContentStyle.ARTICLE: "Создай информативный заголовок для статьи",
@@ -58,35 +61,35 @@ class PromptLibrary:
         - Соответствие общему стилю презентации
         """.strip()
     }
-    
-    def __init__(self, templates_path: Optional[str | Path] = None):
+
+    def __init__(self, templates_path: str | Path | None = None) -> None:
         """
         Инициализация библиотеки с опциональным путем к файлу шаблонов.
-        
+
         Args:
             templates_path: Путь к YAML файлу с дополнительными шаблонами
         """
         self.templates = self.DEFAULT_TEMPLATES.copy()
         if templates_path:
             self._load_templates(templates_path)
-    
+
     def _load_templates(self, templates_path: str | Path) -> None:
         """
         Загружает пользовательские шаблоны из YAML файла.
-        
+
         Args:
             templates_path: Путь к YAML файлу с шаблонами
         """
         path = Path(templates_path)
         if path.exists():
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 custom_templates = yaml.safe_load(f)
                 self.templates.update(custom_templates)
-    
+
     def get_prompt(self, prompt_type: str, **params: Any) -> str:
         """
         Получение форматированного промпта указанного типа.
-        
+
         Args:
             prompt_type: Тип промпта ('title', 'content', 'image', 'presentation')
             **params: Параметры для форматирования промпта
@@ -96,13 +99,13 @@ class PromptLibrary:
                      format_hint: str - подсказка формата
                      requirements: str - дополнительные требования
                      section_type: str - тип секции презентации
-        
+
         Returns:
             str: Отформатированный промпт
         """
         style = params.get('style', ContentStyle.ARTICLE)
         tone = params.get('tone', ContentTone.PROFESSIONAL)
-        
+
         if prompt_type == 'title':
             instruction = self.templates['title'][style]
             return self.templates['title_template'].format(
@@ -110,8 +113,8 @@ class PromptLibrary:
                 tone=tone.value,
                 context=params.get('context', '')
             )
-        
-        elif prompt_type == 'content':
+
+        if prompt_type == 'content':
             instruction = self.templates['content'][style]
             return self.templates['content_template'].format(
                 instruction=instruction,
@@ -119,33 +122,33 @@ class PromptLibrary:
                 context=params.get('context', ''),
                 format_hint=params.get('format_hint', 'текст')
             )
-        
-        elif prompt_type == 'image':
+
+        if prompt_type == 'image':
             return self.templates['image_template'].format(
                 context=params.get('context', ''),
                 style=style.value,
                 tone=tone.value,
                 requirements=params.get('requirements', '')
             )
-        
-        elif prompt_type == 'presentation':
+
+        if prompt_type == 'presentation':
             return self.templates['presentation_template'].format(
                 section_type=params.get('section_type', 'содержание'),
                 context=params.get('context', ''),
                 style=style.value,
                 tone=tone.value
             )
-        
-        else:
-            template = self.templates.get(prompt_type)
-            if template:
-                return template.format(**params)
-            raise ValueError(f"Unknown prompt type: {prompt_type}")
-    
-    def add_template(self, prompt_type: str, template: str | Dict[str, str]) -> None:
+
+        template = self.templates.get(prompt_type)
+        if template:
+            return template.format(**params)
+        msg = f"Unknown prompt type: {prompt_type}"
+        raise ValueError(msg)
+
+    def add_template(self, prompt_type: str, template: str | dict[str, str]) -> None:
         """
         Добавление нового шаблона промпта.
-        
+
         Args:
             prompt_type: Тип промпта
             template: Шаблон или словарь шаблонов
@@ -155,7 +158,8 @@ class PromptLibrary:
                 if isinstance(template, dict):
                     self.templates[prompt_type].update(template)
                 else:
-                    raise ValueError(f"Template for {prompt_type} must be a dictionary")
+                    msg = f"Template for {prompt_type} must be a dictionary"
+                    raise ValueError(msg)
             else:
                 self.templates[prompt_type] = template
         else:

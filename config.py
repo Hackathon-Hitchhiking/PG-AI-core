@@ -9,7 +9,7 @@ CONFIG = {
         'local_path': 'models/rugpt-3.5-turbo',
         'temperature': 0.7
     },
-    
+
     'image_model': {
         'type': 'api',  # 'api' или 'local'
         'api_endpoint': 'https://api.example.com/v1/images/generations',
@@ -18,12 +18,12 @@ CONFIG = {
         'local_path': 'models/kandinsky-3',
         'guidance_scale': 7.5
     },
-    
+
     # Пути к ресурсам
     'templates_dir': 'resources/templates',
     'output_dir': 'output/presentations',
     'prompt_templates': 'resources/prompts.json',
-    
+
     # Параметры генерации
     'default_slide_count': 10,
     'max_retries': 3,

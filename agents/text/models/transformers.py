@@ -1,11 +1,14 @@
 from typing import Any
+
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from agents.text.schemas import TransformersConfig, GenerationParams
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, TransformersConfig
+
 
 @ModelRegistry.register(TransformersConfig)
 class TransformersModel(BaseTextModel):
-    def __init__(self, model: Any, tokenizer: AutoTokenizer):
+    def __init__(self, model: Any, tokenizer: AutoTokenizer) -> None:
         self.model: AutoModelForCausalLM = model
         self.tokenizer: AutoTokenizer = tokenizer
 
@@ -25,7 +28,7 @@ class TransformersModel(BaseTextModel):
             config.model_path,
             **model_kwargs
         )
-        
+
         tokenizer = AutoTokenizer.from_pretrained(
             config.tokenizer_name or config.model_path,
             trust_remote_code=config.trust_remote_code,
@@ -51,6 +54,6 @@ class TransformersModel(BaseTextModel):
 
         outputs = self.model.generate(**inputs, **generation_kwargs)
         return self.tokenizer.decode(
-            outputs[0], 
+            outputs[0],
             skip_special_tokens=params["skip_special_tokens"]
         )

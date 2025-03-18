@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Type
-from agents.text.schemas import GenerationParams, BaseTextConfig
+
+from agents.text.schemas import BaseTextConfig, GenerationParams
+
 
 class BaseTextModel(ABC):
     @classmethod
@@ -15,20 +16,21 @@ class BaseTextModel(ABC):
         pass
 
 class ModelRegistry:
-    _registry: dict[Type[BaseTextConfig], Type[BaseTextModel]] = {}
+    _registry: dict[type[BaseTextConfig], type[BaseTextModel]] = {}
 
     @classmethod
-    def register(cls, config_type: Type[BaseTextConfig]):
+    def register(cls, config_type: type[BaseTextConfig]):
         """Декоратор для регистрации моделей в реестре"""
-        def decorator(model_class: Type[BaseTextModel]):
+        def decorator(model_class: type[BaseTextModel]):
             cls._registry[config_type] = model_class
             return model_class
         return decorator
 
     @classmethod
-    def get_model_class(cls, config: BaseTextConfig) -> Type[BaseTextModel]:
+    def get_model_class(cls, config: BaseTextConfig) -> type[BaseTextModel]:
         """Получает класс модели по типу конфигурации"""
         config_type = type(config)
         if config_type not in cls._registry:
-            raise ValueError(f"No model registered for config type {config_type}")
+            msg = f"No model registered for config type {config_type}"
+            raise ValueError(msg)
         return cls._registry[config_type]

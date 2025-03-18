@@ -1,11 +1,14 @@
-import requests
 from typing import Any
-from agents.text.schemas import APIConfig, GenerationParams
+
+import requests
+
 from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import APIConfig, GenerationParams
+
 
 @ModelRegistry.register(APIConfig)
 class APIModel(BaseTextModel):
-    def __init__(self, session: requests.Session, config: APIConfig):
+    def __init__(self, session: requests.Session, config: APIConfig) -> None:
         self.session = session
         self.config: APIConfig = config
 
@@ -29,9 +32,8 @@ class APIModel(BaseTextModel):
             timeout=self.config.timeout
         )
         response.raise_for_status()
-        
-        result = self._process_response(response)
-        return result
+
+        return self._process_response(response)
 
     def _process_response(self, response: requests.Response) -> str:
         if self.config.response_format == "json":
@@ -39,9 +41,6 @@ class APIModel(BaseTextModel):
             # Traverse JSON path to get the text response
             result: Any = json_data
             for key in self.config.response_path:
-                if isinstance(result, list) and isinstance(key, int):
-                    result = result[key]
-                else:
-                    result = result.get(str(key))
+                result = result[key] if isinstance(result, list) and isinstance(key, int) else result.get(str(key))
             return str(result)
         return response.text
