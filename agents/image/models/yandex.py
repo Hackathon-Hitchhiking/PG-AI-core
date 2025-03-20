@@ -12,6 +12,7 @@ from agents.image.schemas import GenerationRequest, YandexConfig
 
 logger = logging.getLogger(__name__)
 
+
 @ModelRegistry.register(YandexConfig)
 class YandexModel(BaseImageModel):
     BASE_SIZE = 512
@@ -21,12 +22,9 @@ class YandexModel(BaseImageModel):
         self.config: YandexConfig = config
 
     @classmethod
-    def from_config(cls, config: YandexConfig) -> "YandexModel":
-        sdk = YCloudML(
-            folder_id=config.folder_id,
-            auth=config.iam_token.get_secret_value()
-        )
-        return cls(sdk.models.image_generation("yandex-art"), config)
+    def from_config(cls, config: YandexConfig) -> 'YandexModel':
+        sdk = YCloudML(folder_id=config.folder_id, auth=config.iam_token.get_secret_value())
+        return cls(sdk.models.image_generation('yandex-art'), config)
 
     def _calculate_ratios(self, width: int, height: int) -> tuple[int, int]:
         """Рассчитывает соотношения размеров с округлением до ближайшего допустимого значения."""
@@ -35,8 +33,8 @@ class YandexModel(BaseImageModel):
 
         if width_ratio * self.BASE_SIZE != width or height_ratio * self.BASE_SIZE != height:
             logger.warning(
-                f"Adjusting size from {width}x{height} to "
-                f"{width_ratio*self.BASE_SIZE}x{height_ratio*self.BASE_SIZE}"
+                f'Adjusting size from {width}x{height} to '
+                f'{width_ratio * self.BASE_SIZE}x{height_ratio * self.BASE_SIZE}'
             )
         return width_ratio, height_ratio
 
@@ -55,12 +53,12 @@ class YandexModel(BaseImageModel):
             result = operation.wait()
 
             if not result.image_bytes:
-                msg = "Empty response from Yandex API"
+                msg = 'Empty response from Yandex API'
                 raise ValueError(msg)
 
-            return Image.open(BytesIO(result.image_bytes)).convert("RGB")
+            return Image.open(BytesIO(result.image_bytes)).convert('RGB')
 
         except Exception as e:
-            logger.exception("Yandex generation failed")
-            msg = "Image generation failed"
+            logger.exception('Yandex generation failed')
+            msg = 'Image generation failed'
             raise RuntimeError(msg) from e

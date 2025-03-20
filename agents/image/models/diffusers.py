@@ -14,14 +14,10 @@ class DiffusersModel(BaseImageModel):
         self.config: DiffusersConfig = config
 
     @classmethod
-    def from_config(cls, config: DiffusersConfig) -> "DiffusersModel":
-
+    def from_config(cls, config: DiffusersConfig) -> 'DiffusersModel':
         pipeline = DiffusionPipeline.from_pretrained(
-            config.model_name,
-            torch_dtype=getattr(torch, config.torch_dtype),
-            **config.pipeline_kwargs
+            config.model_name, torch_dtype=getattr(torch, config.torch_dtype), **config.pipeline_kwargs
         )
-
 
         # Применяем оптимизации
         pipeline = pipeline.to(config.device.value)
@@ -43,5 +39,5 @@ class DiffusersModel(BaseImageModel):
             height=request.height,
             num_inference_steps=request.num_inference_steps,
             guidance_scale=request.guidance_scale,
-            generator=generator
+            generator=generator,
         ).images[0]

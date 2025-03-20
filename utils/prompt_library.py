@@ -11,20 +11,20 @@ class PromptLibrary:
 
     DEFAULT_TEMPLATES = {
         'title': {
-            ContentStyle.ARTICLE: "Создай информативный заголовок для статьи",
-            ContentStyle.PRESENTATION: "Придумай яркий, цепляющий заголовок для презентации",
-            ContentStyle.BLOG: "Напиши привлекательный заголовок для блога",
-            ContentStyle.ACADEMIC: "Сформулируй академический заголовок",
-            ContentStyle.MARKETING: "Создай продающий заголовок",
-            ContentStyle.NEWS: "Напиши новостной заголовок"
+            ContentStyle.ARTICLE: 'Создай информативный заголовок для статьи',
+            ContentStyle.PRESENTATION: 'Придумай яркий, цепляющий заголовок для презентации',
+            ContentStyle.BLOG: 'Напиши привлекательный заголовок для блога',
+            ContentStyle.ACADEMIC: 'Сформулируй академический заголовок',
+            ContentStyle.MARKETING: 'Создай продающий заголовок',
+            ContentStyle.NEWS: 'Напиши новостной заголовок',
         },
         'content': {
-            ContentStyle.ARTICLE: "Напиши подробную статью",
-            ContentStyle.PRESENTATION: "Создай яркий и лаконичный текст для презентации",
-            ContentStyle.BLOG: "Напиши увлекательный блог-пост",
-            ContentStyle.ACADEMIC: "Подготовь академический текст",
-            ContentStyle.MARKETING: "Создай убедительный маркетинговый текст",
-            ContentStyle.NEWS: "Напиши новостную статью"
+            ContentStyle.ARTICLE: 'Напиши подробную статью',
+            ContentStyle.PRESENTATION: 'Создай яркий и лаконичный текст для презентации',
+            ContentStyle.BLOG: 'Напиши увлекательный блог-пост',
+            ContentStyle.ACADEMIC: 'Подготовь академический текст',
+            ContentStyle.MARKETING: 'Создай убедительный маркетинговый текст',
+            ContentStyle.NEWS: 'Напиши новостную статью',
         },
         'title_template': """
         {instruction} в {tone} стиле.
@@ -59,7 +59,7 @@ class PromptLibrary:
         - Лаконичность и структурированность
         - Ключевые идеи должны быть выделены
         - Соответствие общему стилю презентации
-        """.strip()
+        """.strip(),
     }
 
     def __init__(self, templates_path: str | Path | None = None) -> None:
@@ -109,9 +109,7 @@ class PromptLibrary:
         if prompt_type == 'title':
             instruction = self.templates['title'][style]
             return self.templates['title_template'].format(
-                instruction=instruction,
-                tone=tone.value,
-                context=params.get('context', '')
+                instruction=instruction, tone=tone.value, context=params.get('context', '')
             )
 
         if prompt_type == 'content':
@@ -120,7 +118,7 @@ class PromptLibrary:
                 instruction=instruction,
                 tone=tone.value,
                 context=params.get('context', ''),
-                format_hint=params.get('format_hint', 'текст')
+                format_hint=params.get('format_hint', 'текст'),
             )
 
         if prompt_type == 'image':
@@ -128,7 +126,7 @@ class PromptLibrary:
                 context=params.get('context', ''),
                 style=style.value,
                 tone=tone.value,
-                requirements=params.get('requirements', '')
+                requirements=params.get('requirements', ''),
             )
 
         if prompt_type == 'presentation':
@@ -136,13 +134,13 @@ class PromptLibrary:
                 section_type=params.get('section_type', 'содержание'),
                 context=params.get('context', ''),
                 style=style.value,
-                tone=tone.value
+                tone=tone.value,
             )
 
         template = self.templates.get(prompt_type)
         if template:
             return template.format(**params)
-        msg = f"Unknown prompt type: {prompt_type}"
+        msg = f'Unknown prompt type: {prompt_type}'
         raise ValueError(msg)
 
     def add_template(self, prompt_type: str, template: str | dict[str, str]) -> None:
@@ -158,7 +156,7 @@ class PromptLibrary:
                 if isinstance(template, dict):
                     self.templates[prompt_type].update(template)
                 else:
-                    msg = f"Template for {prompt_type} must be a dictionary"
+                    msg = f'Template for {prompt_type} must be a dictionary'
                     raise ValueError(msg)
             else:
                 self.templates[prompt_type] = template

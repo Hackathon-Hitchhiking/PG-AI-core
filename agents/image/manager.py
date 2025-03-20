@@ -15,9 +15,7 @@ class ModelManager:
     def _get_config_hash(self, config: BaseImageConfig) -> str:
         """Генерирует уникальный хэш для конфигурации"""
         config_dict = config.model_dump(mode='json')
-        return hashlib.sha256(
-            orjson.dumps(config_dict, option=orjson.OPT_SORT_KEYS)
-        ).hexdigest()
+        return hashlib.sha256(orjson.dumps(config_dict, option=orjson.OPT_SORT_KEYS)).hexdigest()
 
     def get_model(self, config: BaseImageConfig) -> BaseImageModel:
         """Возвращает модель по конфигурации, используя кэш"""

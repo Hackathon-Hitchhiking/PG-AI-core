@@ -13,5 +13,5 @@ __all__ = [
     'LangChainModel',
     'LlamaIndexModel',
     'LlamaCppModel',
-    'VLLMModel'
+    'VLLMModel',
 ]

@@ -12,22 +12,15 @@ class LangChainModel(BaseTextModel):
         self.chain = chain
 
     @classmethod
-    def from_config(cls, config: LangChainConfig) -> "LangChainModel":
+    def from_config(cls, config: LangChainConfig) -> 'LangChainModel':
         llm = HuggingFacePipeline.from_model_id(
             model_id=config.model_name,
-            task="text-generation",
+            task='text-generation',
             device=config.device,
-            pipeline_kwargs={
-                "max_length": config.context_length,
-                "temperature": 0.7
-            }
+            pipeline_kwargs={'max_length': config.context_length, 'temperature': 0.7},
         )
-        template = config.langchain_template or "{input}"
+        template = config.langchain_template or '{input}'
         return cls(LLMChain(llm=llm, prompt=PromptTemplate.from_template(template)))
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
-        return self.chain.run(
-            input=prompt,
-            temperature=params["temperature"],
-            max_length=params["max_new_tokens"]
-        )
+        return self.chain.run(input=prompt, temperature=params['temperature'], max_length=params['max_new_tokens'])

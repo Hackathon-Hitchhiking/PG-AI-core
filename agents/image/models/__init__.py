@@ -6,10 +6,10 @@ from .yandex import YandexModel
 
 
 __all__ = [
-    "ModelRegistry",
-    "BaseImageModel",
-    "DiffusersModel",
-    "OpenAIModel",
-    "APIModel",
-    "YandexModel",
+    'ModelRegistry',
+    'BaseImageModel',
+    'DiffusersModel',
+    'OpenAIModel',
+    'APIModel',
+    'YandexModel',
 ]

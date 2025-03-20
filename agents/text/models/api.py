@@ -13,30 +13,23 @@ class APIModel(BaseTextModel):
         self.config: APIConfig = config
 
     @classmethod
-    def from_config(cls, config: APIConfig) -> "APIModel":
+    def from_config(cls, config: APIConfig) -> 'APIModel':
         session = requests.Session()
         session.headers.update(config.headers)
         if config.api_key:
-            session.headers["Authorization"] = f"Bearer {config.api_key}"
+            session.headers['Authorization'] = f'Bearer {config.api_key}'
         return cls(session, config)
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
-        request_data = {
-            "prompt": prompt,
-            **params
-        }
+        request_data = {'prompt': prompt, **params}
 
-        response = self.session.post(
-            self.config.api_base,
-            json=request_data,
-            timeout=self.config.timeout
-        )
+        response = self.session.post(self.config.api_base, json=request_data, timeout=self.config.timeout)
         response.raise_for_status()
 
         return self._process_response(response)
 
     def _process_response(self, response: requests.Response) -> str:
-        if self.config.response_format == "json":
+        if self.config.response_format == 'json':
             json_data = response.json()
             # Traverse JSON path to get the text response
             result: Any = json_data

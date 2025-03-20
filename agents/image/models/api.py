@@ -16,32 +16,26 @@ class APIModel(BaseImageModel):
         self.config: APIConfig = config
 
     @classmethod
-    def from_config(cls, config: APIConfig) -> "APIModel":
+    def from_config(cls, config: APIConfig) -> 'APIModel':
         session = requests.Session()
         session.headers.update(config.headers)
         if config.api_key:
-            session.headers["Authorization"] = f"Bearer {config.api_key.get_secret_value()}"
+            session.headers['Authorization'] = f'Bearer {config.api_key.get_secret_value()}'
         return cls(session, config)
 
     def generate(self, request: GenerationRequest) -> Image.Image:
-        if self.config.method == "GET":
+        if self.config.method == 'GET':
             return self._handle_get(request)
         return self._handle_post(request)
 
     def _handle_get(self, request: GenerationRequest) -> Image.Image:
         response = self.session.get(
-            self.config.api_base,
-            params={"prompt": request.prompt},
-            timeout=self.config.timeout
+            self.config.api_base, params={'prompt': request.prompt}, timeout=self.config.timeout
         )
         return self._process_response(response)
 
     def _handle_post(self, request: GenerationRequest) -> Image.Image:
-        response = self.session.post(
-            self.config.api_base,
-            json=request.model_dump(),
-            timeout=self.config.timeout
-        )
+        response = self.session.post(self.config.api_base, json=request.model_dump(), timeout=self.config.timeout)
         return self._process_response(response)
 
     def _process_response(self, response: requests.Response) -> Image.Image:

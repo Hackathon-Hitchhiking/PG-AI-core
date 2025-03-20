@@ -9,6 +9,7 @@ from agents.text.schemas import GenerationParams, YandexConfig
 
 logger = logging.getLogger(__name__)
 
+
 @ModelRegistry.register(YandexConfig)
 class YandexModel(BaseTextModel):
     def __init__(self, model: GPTModel, config: YandexConfig) -> None:
@@ -16,28 +17,28 @@ class YandexModel(BaseTextModel):
         self.config = config
 
     @classmethod
-    def from_config(cls, config: YandexConfig) -> "YandexModel":
+    def from_config(cls, config: YandexConfig) -> 'YandexModel':
         sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
         model = sdk.models.completions('yandexgpt')
         return cls(model, config)
 
     def generate(self, prompt: str, params: GenerationParams) -> str:
         try:
-            messages = [{"role": "user", "text": prompt}]
+            messages = [{'role': 'user', 'text': prompt}]
 
             config_params = {}
-            if "max_new_tokens" in params:
-                config_params["max_tokens"] = params["max_new_tokens"]
-            if "temperature" in params:
-                config_params["temperature"] = params["temperature"]
+            if 'max_new_tokens' in params:
+                config_params['max_tokens'] = params['max_new_tokens']
+            if 'temperature' in params:
+                config_params['temperature'] = params['temperature']
 
             configured_model = self.model.configure(**config_params)
             result = configured_model.run(messages=messages)
 
             # Get text directly from the alternative
-            return result.alternatives[0].text if result and result.alternatives else ""
+            return result.alternatives[0].text if result and result.alternatives else ''
 
         except Exception as e:
-            logger.exception(f"Yandex generation failed: {str(e)}")
-            msg = "Text generation failed"
+            logger.exception(f'Yandex generation failed: {str(e)}')
+            msg = 'Text generation failed'
             raise RuntimeError(msg) from e
