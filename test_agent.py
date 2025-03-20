@@ -39,7 +39,7 @@ tools = [
     tool(manager.delete_shape, parse_docstring=parse_docstring)
 ]
 
-llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+llm = init_chat_model("o3-mini", model_provider="openai")
 
 llm_with_tools = llm.bind_tools(tools)
 
@@ -54,7 +54,7 @@ def process_user_request(query: str, history: ChatMessageHistory):
     history.add_user_message(query)
     response = llm_with_tools.invoke(history.messages)
     history.add_ai_message(response.content)
-    
+    second_call_query = ""
     print(response.content)
     if tool_calls := response.additional_kwargs.get("tool_calls", []):
         print(f"🛠️ Executing {len(tool_calls)} tool calls")
@@ -67,17 +67,19 @@ def process_user_request(query: str, history: ChatMessageHistory):
             print(f"🔧 Executing tool call: {tool_call.function}")
             function_name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments)
-
             if hasattr(manager, function_name):
                 try:
                     if tool_call.function.name in ["get_presentation_info", "get_slide_details", "analyze_slide_design"]:
-                        process_user_request(getattr(manager, function_name)(**arguments), history)
+                        second_call_query += str(getattr(manager, function_name)(**arguments))
                     else:
                         result = getattr(manager, function_name)(**arguments)
                 except Exception as e:
                     print(f"Error executing {function_name}: {str(e)}")
             else:
                 print(f"⚠️ Unknown function: {function_name}")
+    if second_call_query:
+        second_call_query += f"\nВ ЭТОМ ЗАПРОСЕ ТЫ БОЛЬШЕ НЕ ИМЕЕШЬ ПРАВА ИСПОЛЬЗОВАТЬ get_presentation_info, get_slide_details, или analyze_slide_design, потому что ты уже использовал их в предыдущем запросе. Ответь на запрос: {query}"
+        process_user_request(second_call_query, history)
 
 # Create output directory
 Path("test_conversation").mkdir(exist_ok=True)
@@ -89,7 +91,7 @@ message_counter = 1
 # Start conversation loop
 signal.signal(signal.SIGINT, signal_handler)
 print("First, let's start with the info about the presentation.")
-process_user_request(f"This is the info about presentation: {manager.get_presentation_info()}. Describe in detail what the presentation is about, what styles it is in, and what it presents.", history)
+process_user_request(f"Это информация о презентации: {manager.get_presentation_info()}.\nПодробно опишите, чему посвящена презентация, в каком стиле она выполнена и что в ней представлено.", history)
 print("Start conversation (Press Ctrl+C to exit)")
 while True:
     try:
