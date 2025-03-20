@@ -9,6 +9,7 @@ from langchain_core.tools import tool
 from langchain_community.chat_message_histories import ChatMessageHistory
 from huggingface_hub.inference._generated.types.chat_completion import ChatCompletionOutputToolCall, ChatCompletionOutputFunctionDefinition
 from tools.pptx_tools import PPTXManager
+import httpx
 
 
 load_dotenv()
@@ -39,8 +40,10 @@ tools = [
     tool(manager.delete_shape, parse_docstring=parse_docstring)
 ]
 
-llm = init_chat_model("gpt-4o-mini", model_provider="openai")
+http_async_client = httpx.AsyncClient(proxy="http://127.0.0.1:1080")
+http_client = httpx.Client(proxy="http://127.0.0.1:1080")
 
+llm = init_chat_model("gpt-4o-mini", model_provider="openai", http_client=http_client, http_async_client=http_async_client)
 llm_with_tools = llm.bind_tools(tools)
 
 def signal_handler(sig, frame):
