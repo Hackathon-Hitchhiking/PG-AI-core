@@ -1,0 +1,18 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Check
+        entry: bash -c "ruff check . || true"
+        language: system
+        types: [python]
+      - id: make-fix
+        name: Make Fix
+        entry: bash -c "make fix || true"
+        language: system
+        pass_filenames: false
+      - id: make-format
+        name: Make Format
+        entry: bash -c "make format || true"
+        language: system
+        pass_filenames: false

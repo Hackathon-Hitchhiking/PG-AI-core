@@ -9,6 +9,7 @@ from pptx.enum.dml import MSO_COLOR_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Pt
+
 from tools.pptx import hex_to_rgb, resolve_chart_type, rgb_to_hex
 from tools.schemas import (
     ChartSeries,
