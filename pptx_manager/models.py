@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class TextFrameShape(BaseModel):
-    slide_id: int
     shape_id: int
 
     text: str
@@ -17,7 +16,15 @@ class TextFrameShape(BaseModel):
     strike: bool | None = None
     color: tuple | None = None
 
-    text_frame: Any
+    # the manager of the shape block. import pptx.text.text.TextFrame
+    text_manager: Any
+    # the manager of the shape.paragraph.runs. import pptx.text.text.Font
+    font_manager: Any
+
+
+class UpdateTextFrameOpts(BaseModel):
+    text: str | None = None
+    new_color: tuple[int] | None = None
 
 
 class RunElement(BaseModel):

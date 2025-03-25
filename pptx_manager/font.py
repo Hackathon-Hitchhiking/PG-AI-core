@@ -1,17 +1,21 @@
 import colorsys
 
+from collections.abc import Iterator
+
 import numpy as np
 
 from loguru import logger
 from PIL import ImageColor
 from pptx import Presentation
+from pptx.dml.color import RGBColor
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml import parse_xml
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slides
 from pptx.text.text import Font
+from pptx.util import Pt
 
-from pptx_manager.models import ParagraphRunElement, RunElement, ShapeRunElement, TextFrameShape
+from pptx_manager.models import ParagraphRunElement, RunElement, ShapeRunElement, TextFrameShape, UpdateTextFrameOpts
 from pptx_manager.utils import get_all_methods, hex_to_rgb
 
 
@@ -19,7 +23,7 @@ class FontManager:
     def __init__(self):
         self.pres = None
 
-        self.text_frames = []
+        self.text_frames: dict[int, TextFrameShape] = {}  # slide_id -> text_frame_shape
 
     def get_all_runs(self, slide: Slides) -> list[ShapeRunElement]:
         shape_info_list = []
@@ -30,7 +34,7 @@ class FontManager:
                 continue
 
             paragraphs_list = []
-            for paragraph in shape.text_frame.paragraphs:
+            for paragraph in shape.text_manager.paragraphs:
                 font_list = []
 
                 logger.debug(f'methods = {get_all_methods(paragraph.text)}')
@@ -120,6 +124,40 @@ class FontManager:
 
         return font_size
 
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts):
+        if opts.text is not None:
+            self._update_text_text_frame_shape(slide_id, shape_id, opts.text)
+
+        if opts.new_color is not None:
+            self._update_color_text_frame_shape(slide_id, shape_id, opts.new_color)
+
+    def _update_text_text_frame_shape(self, slide_id: int, shape_id: int | None, new_text: str) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.text_manager.text = new_text
+
+    def _update_color_text_frame_shape(self, slide_id: int, shape_id: int | None, new_color: tuple[int]) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.font_color.rgb = RGBColor(new_color[0], new_color[1], new_color[2])
+
+    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
+        for frames in self.text_frames[slide_id]:
+            for frame in frames:
+                if shape_id is not None and shape_id != frame.shape_id:
+                    continue
+                yield frame
+
+    def _create_undefined_font(self, unified_font: Font, base_font: Font, slide: Slides) -> Font:
+        unified_font.name = base_font.name
+        unified_font.size = Pt(self._get_font_size(base_font))
+        unified_font.bold = base_font.bold
+        unified_font.italic = base_font.italic
+        unified_font.underline = base_font.underline
+        unified_font.language_id = base_font.language_id
+
+        unified_font.color.rgb = RGBColor(*self._get_font_color(slide, base_font))
+
+        return unified_font
+
     def parse_text_frame_shape(
         self, slide_id: int, shape_id: int, slide: Slides, shape: Shape
     ) -> None | TextFrameShape:
@@ -128,24 +166,46 @@ class FontManager:
         try:
             text_frame = shape.text_frame
 
-            text = shape.text
+            first_run_font = None
+            full_text_lines = []
+            for p_i, paragraph in enumerate(text_frame.paragraphs):
+                paragraph_text = ''
+                for r_i, run in enumerate(paragraph.runs):
+                    if first_run_font is None:
+                        first_run_font = run.font
+                    paragraph_text += run.text
+                full_text_lines.append(paragraph_text)
+
+            merged_text = '\n'.join(full_text_lines)
+
+            if first_run_font is None:
+                logger.warning(f'Could not find first font in text frame, text={merged_text}')
+                return None
+
+            text_frame.clear()
+
+            text_frame.text = merged_text
 
             paragraph = text_frame.paragraphs[0]
-            run = paragraph.runs[0]
-            font = run.font
+            single_run = paragraph.runs[0]
+            unified_font = single_run.font
 
-            font_size = self._get_font_size(font)
-            font_color = self._get_font_color(slide, font)
-            font_name = font.name
-            bold = font.bold
-            italic = font.italic
-            underline = font.underline
+            unified_font = self._create_undefined_font(unified_font, first_run_font, slide)
+
+            font_size = self._get_font_size(unified_font)
+            font_color = self._get_font_color(slide, unified_font)
+            font_name = unified_font.name
+            bold = unified_font.bold
+            italic = unified_font.italic
+            underline = unified_font.underline
+
+            text = merged_text
+
         except Exception as e:
-            logger.warning(f'error parsing text_frame = {e}')
+            logger.warning(f'error parsing text_frame = {e}, text_shape = {shape.text}')
             return None
 
         text_frame = TextFrameShape(
-            slide_id=slide_id,
             shape_id=shape_id,
             text=text,
             font_name=font_name,
@@ -154,10 +214,11 @@ class FontManager:
             italic=italic,
             underline=underline,
             color=font_color,
-            text_frame=text_frame,
+            text_manager=text_frame,
+            font_manager=unified_font,
         )
 
-        self.text_frames.append(text_frame)
+        self.text_frames[slide_id] = text_frame
 
         return text_frame
 
@@ -175,6 +236,8 @@ class FontManager:
                         slide_id += 1
 
         logger.debug(f'frames = {self.text_frames}')
+
+        self.pres.save('test.pptx')
 
 
 if __name__ == '__main__':
