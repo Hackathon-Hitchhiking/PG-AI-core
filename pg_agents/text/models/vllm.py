@@ -1,7 +1,6 @@
-from vllm import LLM, SamplingParams
-
 from agents.text.models.base import BaseTextModel, ModelRegistry
 from agents.text.schemas import GenerationParams, vLLMConfig
+from vllm import LLM, SamplingParams
 
 
 @ModelRegistry.register(vLLMConfig)

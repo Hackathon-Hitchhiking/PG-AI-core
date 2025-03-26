@@ -1,10 +1,9 @@
 import logging
 
-from yandex_cloud_ml_sdk import YCloudML
-from yandex_cloud_ml_sdk._models.completions.model import GPTModel
-
 from agents.text.models.base import BaseTextModel, ModelRegistry
 from agents.text.schemas import GenerationParams, YandexConfig
+from yandex_cloud_ml_sdk import YCloudML
+from yandex_cloud_ml_sdk._models.completions.model import GPTModel
 
 
 logger = logging.getLogger(__name__)

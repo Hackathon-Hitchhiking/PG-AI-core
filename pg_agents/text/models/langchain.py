@@ -1,9 +1,8 @@
+from agents.text.models.base import BaseTextModel, ModelRegistry
+from agents.text.schemas import GenerationParams, LangChainConfig
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_huggingface.llms import HuggingFacePipeline
-
-from agents.text.models.base import BaseTextModel, ModelRegistry
-from agents.text.schemas import GenerationParams, LangChainConfig
 
 
 @ModelRegistry.register(LangChainConfig)

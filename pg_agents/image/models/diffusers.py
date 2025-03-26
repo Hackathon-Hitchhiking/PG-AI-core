@@ -1,10 +1,9 @@
 import torch
 
-from diffusers import DiffusionPipeline
-from PIL import Image
-
 from agents.image.models.base import BaseImageModel, ModelRegistry
 from agents.image.schemas import DiffusersConfig, GenerationRequest
+from diffusers import DiffusionPipeline
+from PIL import Image
 
 
 @ModelRegistry.register(DiffusersConfig)

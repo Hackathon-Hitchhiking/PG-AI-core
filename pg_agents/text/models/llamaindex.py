@@ -1,8 +1,7 @@
-from langchain_huggingface import HuggingFacePipeline
-from llama_index.core import Document, ServiceContext, VectorStoreIndex
-
 from agents.text.models.base import BaseTextModel, ModelRegistry
 from agents.text.schemas import GenerationParams, LlamaIndexConfig
+from langchain_huggingface import HuggingFacePipeline
+from llama_index.core import Document, ServiceContext, VectorStoreIndex
 
 
 @ModelRegistry.register(LlamaIndexConfig)

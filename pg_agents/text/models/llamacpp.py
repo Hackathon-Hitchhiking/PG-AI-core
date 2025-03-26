@@ -1,7 +1,6 @@
-from llama_cpp import Llama
-
 from agents.text.models.base import BaseTextModel, ModelRegistry
 from agents.text.schemas import GenerationParams, LlamaCppConfig
+from llama_cpp import Llama
 
 
 @ModelRegistry.register(LlamaCppConfig)

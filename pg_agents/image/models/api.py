@@ -3,10 +3,9 @@ from io import BytesIO
 
 import requests
 
-from PIL import Image
-
 from agents.image.models.base import BaseImageModel, ModelRegistry
 from agents.image.schemas import APIConfig, GenerationRequest
+from PIL import Image
 
 
 @ModelRegistry.register(APIConfig)

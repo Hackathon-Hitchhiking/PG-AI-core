@@ -5,13 +5,12 @@ from pathlib import Path
 
 import orjson
 
-from cachetools import LRUCache
-from PIL import Image
-from pydantic import ValidationError
-
 from agents.image.exceptions import ImageGenerationError
 from agents.image.manager import ModelManager
 from agents.image.schemas import BaseImageConfig, GenerationRequest
+from cachetools import LRUCache
+from PIL import Image
+from pydantic import ValidationError
 
 
 logger = logging.getLogger(__name__)

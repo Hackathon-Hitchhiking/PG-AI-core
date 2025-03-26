@@ -2,12 +2,11 @@ import logging
 
 from io import BytesIO
 
+from agents.image.models.base import BaseImageModel, ModelRegistry
+from agents.image.schemas import GenerationRequest, YandexConfig
 from PIL import Image
 from yandex_cloud_ml_sdk import YCloudML
 from yandex_cloud_ml_sdk._models.image_generation.model import ImageGenerationModel
-
-from agents.image.models.base import BaseImageModel, ModelRegistry
-from agents.image.schemas import GenerationRequest, YandexConfig
 
 
 logger = logging.getLogger(__name__)
