@@ -1,4 +1,4 @@
-from pptx_manager.font import FontManager
+from pptx_manager.font import TextFrameManager
 from pptx_manager.group import GroupManager
 from pptx_manager.image import ImageManager
 from pptx_manager.shape import ShapeManager
@@ -7,7 +7,7 @@ from pptx_manager.table import TableManager
 
 
 class PPTXManager(
-    FontManager,
+    TextFrameManager,
     GroupManager,
     ImageManager,
     ShapeManager,

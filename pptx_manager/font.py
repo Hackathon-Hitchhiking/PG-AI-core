@@ -1,5 +1,6 @@
 import colorsys
 
+from collections import defaultdict
 from collections.abc import Iterator
 
 import numpy as np
@@ -19,11 +20,11 @@ from pptx_manager.models import ParagraphRunElement, RunElement, ShapeRunElement
 from pptx_manager.utils import get_all_methods, hex_to_rgb
 
 
-class FontManager:
+class TextFrameManager:
     def __init__(self):
         self.pres = None
 
-        self.text_frames: dict[int, TextFrameShape] = {}  # slide_id -> text_frame_shape
+        self.text_frame_shapes = defaultdict(list[TextFrameShape])  # slide_id -> text_frame_shape
 
     def get_all_runs(self, slide: Slides) -> list[ShapeRunElement]:
         shape_info_list = []
@@ -128,23 +129,53 @@ class FontManager:
         if opts.text is not None:
             self._update_text_text_frame_shape(slide_id, shape_id, opts.text)
 
-        if opts.new_color is not None:
-            self._update_color_text_frame_shape(slide_id, shape_id, opts.new_color)
+        if opts.color is not None:
+            self._update_color_text_frame_shape(slide_id, shape_id, opts.color)
+
+        if opts.italic is not None:
+            self._update_italic_text_frame_shape(slide_id, shape_id, opts.italic)
+
+        if opts.underline is not None:
+            self._update_underline_text_frame_shape(slide_id, shape_id, opts.underline)
+
+        if opts.bold is not None:
+            self._update_bold_text_frame_shape(slide_id, shape_id, opts.bold)
+
+        if opts.size is not None:
+            self._update_size_text_frame_shape(slide_id, shape_id, opts.size)
 
     def _update_text_text_frame_shape(self, slide_id: int, shape_id: int | None, new_text: str) -> None:
         for frame in self._get_frame(slide_id, shape_id):
-            frame.text_manager.text = new_text
+            frame.text_manager.paragraphs[0].runs[0].text = new_text
 
-    def _update_color_text_frame_shape(self, slide_id: int, shape_id: int | None, new_color: tuple[int]) -> None:
+    def _update_color_text_frame_shape(
+        self, slide_id: int, shape_id: int | None, new_color: tuple[int, int, int]
+    ) -> None:
         for frame in self._get_frame(slide_id, shape_id):
-            frame.font_manager.font_color.rgb = RGBColor(new_color[0], new_color[1], new_color[2])
+            frame.font_manager.color.rgb = RGBColor(new_color[0], new_color[1], new_color[2])
+
+    def _update_bold_text_frame_shape(self, slide_id: int, shape_id: int | None, bold: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.bold = bold
+
+    def _update_italic_text_frame_shape(self, slide_id: int, shape_id: int | None, italic: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.italic = italic
+
+    def _update_underline_text_frame_shape(self, slide_id: int, shape_id: int | None, underline: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.underline = underline
+
+    def _update_size_text_frame_shape(self, slide_id: int, shape_id: int | None, new_size: int) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.size = Pt(new_size)
 
     def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
-        for frames in self.text_frames[slide_id]:
-            for frame in frames:
-                if shape_id is not None and shape_id != frame.shape_id:
-                    continue
-                yield frame
+        frames = self.text_frame_shapes[slide_id]
+        for frame in frames:
+            if shape_id is not None and shape_id != frame.shape_id:
+                continue
+            yield frame
 
     def _create_undefined_font(self, unified_font: Font, base_font: Font, slide: Slides) -> Font:
         unified_font.name = base_font.name
@@ -184,10 +215,9 @@ class FontManager:
 
             text_frame.clear()
 
-            text_frame.text = merged_text
-
             paragraph = text_frame.paragraphs[0]
-            single_run = paragraph.runs[0]
+            single_run = paragraph.add_run()
+            single_run.text = merged_text
             unified_font = single_run.font
 
             unified_font = self._create_undefined_font(unified_font, first_run_font, slide)
@@ -205,7 +235,7 @@ class FontManager:
             logger.warning(f'error parsing text_frame = {e}, text_shape = {shape.text}')
             return None
 
-        text_frame = TextFrameShape(
+        text_frame_shape = TextFrameShape(
             shape_id=shape_id,
             text=text,
             font_name=font_name,
@@ -218,29 +248,35 @@ class FontManager:
             font_manager=unified_font,
         )
 
-        self.text_frames[slide_id] = text_frame
+        self.text_frame_shapes[slide_id].append(text_frame_shape)
 
-        return text_frame
+        return text_frame_shape
 
     def test(self, source):
         self.pres = Presentation(source)
 
-        shape_id = 1
         slide_id = 1
         for slide in self.pres.slides:
+            shape_id = 1
             for shape in slide.shapes:
                 if shape.has_text_frame:
                     res = self.parse_text_frame_shape(slide_id, shape_id, slide, shape)
                     if res is not None:
                         shape_id += 1
-                        slide_id += 1
+            slide_id += 1
 
-        logger.debug(f'frames = {self.text_frames}')
+        logger.debug(f'frames = {self.text_frame_shapes}')
+
+        self.update_text_frame_shape(
+            1,
+            None,
+            UpdateTextFrameOpts(text='тестовая замена текста', color=(0, 0, 0), italic=True, bold=True, size=12),
+        )
 
         self.pres.save('test.pptx')
 
 
 if __name__ == '__main__':
-    fm = FontManager()
+    fm = TextFrameManager()
 
     fm.test('../test_sources/test_dit.pptx')
