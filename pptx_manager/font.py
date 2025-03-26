@@ -16,8 +16,8 @@ from pptx.slide import Slides
 from pptx.text.text import Font
 from pptx.util import Pt
 
-from pptx_manager.models import ParagraphRunElement, RunElement, ShapeRunElement, TextFrameShape, UpdateTextFrameOpts
-from pptx_manager.utils import get_all_methods, hex_to_rgb
+from pptx_manager.models import TextFrameShape, UpdateTextFrameOpts
+from pptx_manager.utils import hex_to_rgb
 
 
 class TextFrameManager:
@@ -25,50 +25,6 @@ class TextFrameManager:
         self.pres = None
 
         self.text_frame_shapes = defaultdict(list[TextFrameShape])  # slide_id -> text_frame_shape
-
-    def get_all_runs(self, slide: Slides) -> list[ShapeRunElement]:
-        shape_info_list = []
-
-        for shape in slide.shapes:
-            print(type(shape))
-            if not shape.has_text_frame:
-                continue
-
-            paragraphs_list = []
-            for paragraph in shape.text_manager.paragraphs:
-                font_list = []
-
-                logger.debug(f'methods = {get_all_methods(paragraph.text)}')
-
-                for run in paragraph.runs:
-                    font = run.font
-
-                    font_size = 12
-
-                    if font.size is not None:
-                        font_size = font.size.pt
-
-                    font_color = self._get_font_color(slide, font)
-
-                    run_info = RunElement(
-                        text=run.text,
-                        font_name=font.name,
-                        font_size=font_size,
-                        bold=font.bold,
-                        italic=font.italic,
-                        underline=font.underline,
-                        color=font_color,
-                    )
-                    font_list.append(run_info)
-
-                align_name = str(paragraph.alignment) if paragraph.alignment else None
-
-                paragraphs_list.append(ParagraphRunElement(alignment=align_name, fonts=font_list))
-
-            shape_info = ShapeRunElement(shape_id=shape.shape_id, shape_name=shape.name, paragraphs=paragraphs_list)
-            shape_info_list.append(shape_info)
-
-        return shape_info_list
 
     def _get_font_color(self, slide: Slides, font: Font) -> tuple:
         # https://stackoverflow.com/questions/54692768/python-pptx-read-font-color
