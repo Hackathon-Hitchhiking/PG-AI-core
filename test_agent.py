@@ -1,133 +1,123 @@
-import getpass
-import json
-import os
-import signal
-
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+from pptx.dml.color import RGBColor
+from typing import List, Dict, Any
+import logging
 from pathlib import Path
+from pptx_manager.chart import ChartManager, ChartShape
 
-import httpx
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-from dotenv import load_dotenv
-from huggingface_hub.inference._generated.types.chat_completion import (
-    ChatCompletionOutputFunctionDefinition,
-    ChatCompletionOutputToolCall,
-)
-from langchain.chat_models import init_chat_model
-from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.tools import tool
-
-from tools.pptx_tools import PPTXManager
-
-
-load_dotenv()
-
-if not os.environ.get('OPENAI_API_KEY'):
-    os.environ['OPENAI_API_KEY'] = getpass.getpass('Enter API key for OpenAI: ')
-
-manager = PPTXManager('test_sources/test_dit.pptx')
-parse_docstring = True
-tools = [
-    tool(manager.get_presentation_info, parse_docstring=parse_docstring),
-    tool(manager.get_slide_details, parse_docstring=parse_docstring),
-    tool(manager.analyze_slide_design, parse_docstring=parse_docstring),
-    tool(manager.create_new_slide, parse_docstring=parse_docstring),
-    tool(manager.duplicate_slide, parse_docstring=parse_docstring),
-    tool(manager.delete_slide, parse_docstring=parse_docstring),
-    tool(manager.set_slide_background, parse_docstring=parse_docstring),
-    tool(manager.apply_slide_template, parse_docstring=parse_docstring),
-    tool(manager.add_text_block, parse_docstring=parse_docstring),
-    tool(manager.edit_text_content, parse_docstring=parse_docstring),
-    tool(manager.format_text_style, parse_docstring=parse_docstring),
-    tool(manager.insert_image, parse_docstring=parse_docstring),
-    tool(manager.replace_image, parse_docstring=parse_docstring),
-    tool(manager.create_chart, parse_docstring=parse_docstring),
-    tool(manager.modify_chart_data, parse_docstring=parse_docstring),
-    tool(manager.create_table, parse_docstring=parse_docstring),
-    tool(manager.edit_table_cell, parse_docstring=parse_docstring),
-    tool(manager.delete_shape, parse_docstring=parse_docstring),
-]
-
-http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
-http_client = httpx.Client(proxy='http://127.0.0.1:1080')
-
-llm = init_chat_model(
-    'gpt-4o-mini', model_provider='openai', http_client=http_client, http_async_client=http_async_client
-)
-llm_with_tools = llm.bind_tools(tools)
-
-
-def signal_handler(sig, frame):
-    print('\nClosing presentation and exiting...')
-    manager.close()
-    exit(0)
-
-
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-
-def process_user_request(query: str, history: ChatMessageHistory):
-    history.add_user_message(query)
-    response = llm_with_tools.invoke(history.messages)
-    history.add_ai_message(response.content)
-    second_call_query = ''
-    print(response.content)
-    if tool_calls := response.additional_kwargs.get('tool_calls', []):
-        print(f'🛠️ Executing {len(tool_calls)} tool calls')
-        for tool_call_dict in tool_calls:
-            tool_call = ChatCompletionOutputToolCall(
-                id=tool_call_dict['id'],
-                function=ChatCompletionOutputFunctionDefinition(**tool_call_dict['function']),
-                type=tool_call_dict['type'],
-            )
-            print(f'🔧 Executing tool call: {tool_call.function}')
-            function_name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
-            if hasattr(manager, function_name):
-                try:
-                    if tool_call.function.name in [
-                        'get_presentation_info',
-                        'get_slide_details',
-                        'analyze_slide_design',
-                    ]:
-                        second_call_query += str(getattr(manager, function_name)(**arguments))
-                    else:
-                        result = getattr(manager, function_name)(**arguments)
-                except Exception as e:
-                    print(f'Error executing {function_name}: {str(e)}')
-            else:
-                print(f'⚠️ Unknown function: {function_name}')
-    if second_call_query:
-        second_call_query += f'\nВ ЭТОМ ЗАПРОСЕ ТЫ БОЛЬШЕ НЕ ИМЕЕШЬ ПРАВА ИСПОЛЬЗОВАТЬ get_presentation_info, get_slide_details, или analyze_slide_design, потому что ты уже использовал их в предыдущем запросе. Ответь на запрос: {query}'
-        process_user_request(second_call_query, history)
-
-
-# Create output directory
-Path('test_conversation').mkdir(exist_ok=True)
-
-# Initialize conversation history
-history = ChatMessageHistory()
-message_counter = 1
-
-# Start conversation loop
-signal.signal(signal.SIGINT, signal_handler)
-print("First, let's start with the info about the presentation.")
-process_user_request(
-    f'Это информация о презентации: {manager.get_presentation_info()}.\nПодробно опишите, чему посвящена презентация, в каком стиле она выполнена и что в ней представлено.',
-    history,
-)
-print('Start conversation (Press Ctrl+C to exit)')
-while True:
+def parse_presentation_charts(file_path: str) -> List[Dict[str, Any]]:
+    """Парсинг всех графиков в презентации"""
     try:
-        user_input = input('\nYour request: ')
-        process_user_request(user_input, history)
+        manager = ChartManager(file_path)
+        charts = manager.parse_all_charts()
+        return [{
+            'slide_id': chart.metadata.slide_id,
+            'shape_id': chart.metadata.shape_id,
+            'chart_data': chart.model_dump(),
+            'position': chart.metadata.size
+        } for chart in charts]
+    except Exception as e:
+        logger.error(f"Parsing failed: {str(e)}")
+        return []
 
-        # Save the presentation with numbered filename
-        save_path = f'test_conversation/win_test{message_counter}.pptx'
-        manager.save(save_path)
-        print(f'Saved presentation as {save_path}')
+def recreate_presentation(parsed_data: List[Dict[str, Any]], output_path: str) -> None:
+    """Создание новой презентации из распарсенных данных"""
+    try:
+        prs = Presentation()
+        manager = ChartManager(str(Path(output_path).with_suffix('.tmp')))
+        
+        for chart_info in parsed_data:
+            try:
+                chart_shape = ChartShape(**chart_info['chart_data'])
+                
+                # Создаем новый слайд
+                slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank layout
+                
+                # Подготовка данных для создания графика
+                chart_data = {
+                    'chart_type': chart_shape.chart_type.value,
+                    'position': {
+                        'left': chart_info['position']['left'],
+                        'top': chart_info['position']['top'],
+                        'width': chart_info['position']['width'],
+                        'height': chart_info['position']['height']
+                    },
+                    'data': {
+                        'categories': chart_shape.data.categories,
+                        'series': [{
+                            'name': s.name,
+                            'values': s.values,
+                            'series_type': s.series_type.value,
+                            'color': s.color,
+                            'marker': s.marker
+                        } for s in chart_shape.data.series]
+                    },
+                    'style': {
+                        'title': chart_shape.metadata.title,
+                        'legend': chart_shape.metadata.legend.dict() if chart_shape.metadata.legend else None,
+                        'axes': {
+                            axis: meta.dict()
+                            for axis, meta in chart_shape.metadata.axes.items()
+                        }
+                    }
+                }
+                
+                # Создание графика
+                created = manager.create_chart(
+                    slide_id=chart_info['slide_id'],
+                    chart_data=chart_data
+                )
+                
+                if not created:
+                    logger.warning(f"Failed to recreate chart {chart_info['shape_id']}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing chart {chart_info.get('shape_id', '?')}: {str(e)}")
+        
+        # Сохранение результата
+        prs.save(output_path)
+        logger.info(f"Presentation saved to {output_path}")
+        
+    except Exception as e:
+        logger.error(f"Critical error: {str(e)}")
+        raise
 
-        message_counter += 1
-    except KeyboardInterrupt:
-        print('\nClosing presentation and exiting...')
-        manager.close()
-        break
+def print_detailed_chart_info(charts_data: List[Dict[str, Any]]) -> None:
+    """Вывод детальной информации о графиках"""
+    for idx, chart in enumerate(charts_data, 1):
+        data = chart['chart_data']
+        print(f"\n{'=' * 50}")
+        print(f"Chart {idx} (Slide {chart['slide_id']})")
+        print(f"Type: {data['chart_type']}")
+        print(f"Title: {data['metadata']['title'] or 'No title'}")
+        print(f"Position (inches): L:{chart['position']['left']:.1f}, " 
+              f"T:{chart['position']['top']:.1f}, "
+              f"W:{chart['position']['width']:.1f}, "
+              f"H:{chart['position']['height']:.1f}")
+        
+        print("\nCategories:", data['data']['categories'])
+        print("Series:")
+        for s in data['data']['series']:
+            print(f" - {s['name']}: {len(s['values'])} values")
+            if s.get('color'):
+                print(f"   Color: {s['color'].get('fill', {}).get('color', 'default')}")
+
+if __name__ == "__main__":
+    # Пример использования
+    try:
+        # Парсинг исходной презентации
+        parsed = parse_presentation_charts("test_sources/test_dit.pptx")
+        print_detailed_chart_info(parsed)
+        
+        # Создание новой презентации
+        recreate_presentation(parsed, "test_sources/result.pptx")
+        logger.info("Operation completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Fatal error: {str(e)}")
