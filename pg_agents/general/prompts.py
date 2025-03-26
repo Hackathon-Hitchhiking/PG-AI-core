@@ -1,5 +1,3 @@
-# agents/general/prompts.py
-
 HEAD_PROMPT = """
 Вы главный координатор системы создания презентаций.
 
