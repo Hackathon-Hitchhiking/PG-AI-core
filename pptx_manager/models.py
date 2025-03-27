@@ -31,6 +31,14 @@ class UpdateTextFrameOpts(BaseModel):
     underline: bool | None = None
 
 
+class UpdateImageFrameOpts(BaseModel):
+    width: int | None = None
+    height: int | None = None
+
+    left: int | None = None
+    top: int | None = None
+
+
 class ImageFrameShape(BaseModel):
     shape_id: int
 
@@ -38,7 +46,7 @@ class ImageFrameShape(BaseModel):
     height: int
 
     left: int
-    right: int
+    top: int
 
     blob: bytes
 
