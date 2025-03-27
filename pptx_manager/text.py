@@ -86,7 +86,7 @@ class TextFrameManager:
 
         return font_size
 
-    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts):
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
         if opts.text is not None:
             self._update_text_text_frame_shape(slide_id, shape_id, opts.text)
 
@@ -158,7 +158,7 @@ class TextFrameManager:
 
     def parse_text_frame_shape(
         self, slide_id: int, shape_id: int, slide: Slides, shape: Shape
-    ) -> None | TextFrameShape:
+    ) -> None | dict[str, TextFrameShape]:
         if shape.text == '':
             return None
         try:
@@ -236,8 +236,8 @@ class TextFrameManager:
 
         self.update_text_frame_shape(
             1,
-            None,
-            UpdateTextFrameOpts(text='тестовая замена текста', color=(0, 0, 0), italic=True, bold=True, size=12),
+            1,
+            UpdateTextFrameOpts(text='хуйня', color=(255, 255, 255), italic=True, bold=True, size=34),
         )
 
         print(self.get_text_frame_json(1))

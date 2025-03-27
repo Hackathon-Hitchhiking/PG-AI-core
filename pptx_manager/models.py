@@ -29,3 +29,17 @@ class UpdateTextFrameOpts(BaseModel):
     bold: bool | None = None
     italic: bool | None = None
     underline: bool | None = None
+
+
+class ImageFrameShape(BaseModel):
+    shape_id: int
+
+    width: int
+    height: int
+
+    left: int
+    right: int
+
+    blob: bytes
+
+    shape_manager: Any
