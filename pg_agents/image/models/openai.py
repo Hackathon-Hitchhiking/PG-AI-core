@@ -7,10 +7,9 @@ from typing import Any
 import openai
 import requests
 
-from PIL import Image
-
 from agents.image.models.base import BaseImageModel, ModelRegistry
 from agents.image.schemas import GenerationRequest, OpenAIConfig
+from PIL import Image
 
 
 @ModelRegistry.register(OpenAIConfig)

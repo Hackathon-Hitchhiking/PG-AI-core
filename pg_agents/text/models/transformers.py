@@ -1,9 +1,8 @@
 from typing import Any
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from agents.text.models.base import BaseTextModel, ModelRegistry
 from agents.text.schemas import GenerationParams, TransformersConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 @ModelRegistry.register(TransformersConfig)

@@ -2,10 +2,9 @@ import hashlib
 
 import orjson
 
-from cachetools import LRUCache
-
 from agents.image.models import BaseImageModel, ModelRegistry
 from agents.image.schemas import BaseImageConfig
+from cachetools import LRUCache
 
 
 class ModelManager:
