@@ -3,6 +3,7 @@ import json
 import os
 import signal
 
+from distutils.util import strtobool
 from pathlib import Path
 
 import httpx
@@ -16,7 +17,7 @@ from langchain.chat_models import init_chat_model
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.tools import tool
 
-from tools.pptx_tools import PPTXManager
+from pptx_manager.main import PPTXManager
 
 
 load_dotenv()
@@ -24,31 +25,23 @@ load_dotenv()
 if not os.environ.get('OPENAI_API_KEY'):
     os.environ['OPENAI_API_KEY'] = getpass.getpass('Enter API key for OpenAI: ')
 
-manager = PPTXManager('../test_data/test_dit.pptx')
+manager = PPTXManager('test_data/test_dit.pptx')
+
+image_json = manager.get_all_text_frame_json()
+
+pr_json = manager.get_all_text_frame_json()
+print(pr_json)
 parse_docstring = True
 tools = [
-    tool(manager.get_presentation_info, parse_docstring=parse_docstring),
-    tool(manager.get_slide_details, parse_docstring=parse_docstring),
-    tool(manager.analyze_slide_design, parse_docstring=parse_docstring),
-    tool(manager.create_new_slide, parse_docstring=parse_docstring),
-    tool(manager.duplicate_slide, parse_docstring=parse_docstring),
-    tool(manager.delete_slide, parse_docstring=parse_docstring),
-    tool(manager.set_slide_background, parse_docstring=parse_docstring),
-    tool(manager.apply_slide_template, parse_docstring=parse_docstring),
-    tool(manager.add_text_block, parse_docstring=parse_docstring),
-    tool(manager.edit_text_content, parse_docstring=parse_docstring),
-    tool(manager.format_text_style, parse_docstring=parse_docstring),
-    tool(manager.insert_image, parse_docstring=parse_docstring),
-    tool(manager.replace_image, parse_docstring=parse_docstring),
-    tool(manager.create_chart, parse_docstring=parse_docstring),
-    tool(manager.modify_chart_data, parse_docstring=parse_docstring),
-    tool(manager.create_table, parse_docstring=parse_docstring),
-    tool(manager.edit_table_cell, parse_docstring=parse_docstring),
-    tool(manager.delete_shape, parse_docstring=parse_docstring),
+    tool(manager.update_text_frame_shape, parse_docstring=parse_docstring),
 ]
 
-http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
-http_client = httpx.Client(proxy='http://127.0.0.1:1080')
+if bool(strtobool(os.environ.get('USE_PROXY_URLS', 'False'))):
+    http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
+    http_client = httpx.Client(proxy='http://127.0.0.1:1080')
+else:
+    http_async_client = None
+    http_client = None
 
 llm = init_chat_model(
     'gpt-4o-mini', model_provider='openai', http_client=http_client, http_async_client=http_async_client
@@ -112,7 +105,7 @@ message_counter = 1
 signal.signal(signal.SIGINT, signal_handler)
 print("First, let's start with the info about the presentation.")
 process_user_request(
-    f'Это информация о презентации: {manager.get_presentation_info()}.\nПодробно опишите, чему посвящена презентация, в каком стиле она выполнена и что в ней представлено.',
+    f'Это информация о презентации: {pr_json}.\nПодробно опишите, чему посвящена презентация, в каком стиле она выполнена и что в ней представлено.',
     history,
 )
 print('Start conversation (Press Ctrl+C to exit)')
@@ -123,7 +116,7 @@ while True:
 
         # Save the presentation with numbered filename
         save_path = f'test_conversation/win_test{message_counter}.pptx'
-        manager.save(save_path)
+        manager.pres.save(save_path)
         print(f'Saved presentation as {save_path}')
 
         message_counter += 1

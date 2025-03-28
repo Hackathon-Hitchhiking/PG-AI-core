@@ -5,7 +5,6 @@ from collections.abc import Iterator
 
 import numpy as np
 
-from agents import function_tool
 from loguru import logger
 from PIL import ImageColor
 from pptx import Presentation
@@ -98,51 +97,35 @@ class TextFrameManager:
 
         return font_size
 
-    @function_tool
     def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts):
-        """
-        Update the properties of a text frame shape in a specific slide.
+        """Updates the properties of a text frame shape in a specific slide.
 
-        This function allows for the modification of various text attributes including content,
-        color, size, and style (bold, italic, underline).
+        Modifies various text attributes, including content, color, size, and style (bold, italic, underline).
 
-        Parameters:
-        -----------
-        slide_id : int
-            The ID of the slide containing the text frame shape to be updated.
-        shape_id : int | None
-            The ID of the shape to be updated. If None, assumes the all shapes on the slide.
-        opts : UpdateTextFrameOpts
-            An object containing the options for updating the text frame. Can be passed as a
-            dictionary, which will be converted to UpdateTextFrameOpts internally.
+        Args:
+            slide_id (int): The ID of the slide containing the text frame shape to be updated.
+            shape_id (int | None): The ID of the shape to be updated. If None, updates all shapes on the slide.
+            opts (UpdateTextFrameOpts): An object containing the options for updating the text frame.
+                If passed as a dictionary, it will be converted to `UpdateTextFrameOpts`.
 
-        The UpdateTextFrameOpts class has the following attributes:
-        - self
-            The self method of the class, not to use it
-        - text : str | None, optional
-            The new text content for the shape.
-        - color : list[int] | None, optional
-            The new color for the text, represented as an RGB tuple.
-        - size : int | None, optional
-            The new font size for the text.
-        - bold : bool | None, optional
-            Whether to set the text to bold or not.
-        - italic : bool | None, optional
-            Whether to set the text to italic or not.
-        - underline : bool | None, optional
-            Whether to underline the text or not.
+        Attributes of `UpdateTextFrameOpts`:
+            text (str | None, optional): The new text content for the shape.
+            color (list[int] | None, optional): The new text color as an RGB tuple.
+            size (int | None, optional): The new font size for the text.
+            bold (bool | None, optional): Whether to set the text to bold.
+            italic (bool | None, optional): Whether to set the text to italic.
+            underline (bool | None, optional): Whether to underline the text.
 
         Notes:
-        ------
-        - Only the attributes specified in the opts object will be updated.
-        - If opts is passed as a dictionary, it will be converted to UpdateTextFrameOpts.
-        - Each attribute update is handled by a separate internal method.
-        - All attributes in UpdateTextFrameOpts are optional and default to None.
+            - Only the attributes specified in `opts` will be updated.
+            - If `opts` is a dictionary, it will be converted to `UpdateTextFrameOpts`.
+            - Each attribute update is handled by a separate internal method.
+            - All attributes in `UpdateTextFrameOpts` are optional and default to None.
 
         Returns:
-        --------
-        None
+            None
         """
+        logger.info(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
         if isinstance(opts, dict):
             opts = UpdateTextFrameOpts(**opts)
 

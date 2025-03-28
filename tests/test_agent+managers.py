@@ -12,7 +12,6 @@ from agents import (
     ToolCallItem,
     ToolCallOutputItem,
     TResponseInputItem,
-    set_default_openai_client,
 )
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -27,22 +26,24 @@ if not os.environ.get('OPENAI_API_KEY'):
     msg = 'добавь ключ в .env'
     raise RuntimeError(msg)
 
-pr = PPTXManager('../test_data/test_dit.pptx')
+pr = PPTXManager('test_data/test_dit.pptx')
 
 image_json = pr.get_all_text_frame_json()
 
 pr_json = pr.get_all_text_frame_json()
-
 http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
 
 custom_client = AsyncOpenAI(
     http_client=http_async_client,
 )
 
-set_default_openai_client(custom_client, True)
+# set_default_openai_client(custom_client, True)
 
 text_agent = Agent(
-    name='TextAgent', instructions=prompts.TEXT_PROMPT.format(image_json), tools=[pr.update_text_frame_shape]
+    name='TextAgent',
+    instructions=prompts.TEXT_PROMPT.format(image_json),
+    tools=[pr.update_text_frame_shape],
+    model='gpt-4o-mini',
 )
 
 tools = [
@@ -52,17 +53,23 @@ tools = [
     ),
 ]
 
-head_agent = Agent(name='HeadController', instructions=prompts.HEAD_PROMPT.format(pr_json), tools=tools, model='gpt-4o')
+head_agent = Agent(
+    name='HeadController',
+    instructions=prompts.HEAD_PROMPT.format(pr_json),
+    tools=[pr.update_text_frame_shape],
+    model='gpt-4o-mini',
+)
 
 
 async def main():
     input_items: list[TResponseInputItem] = []
 
+    iteration = 1
+
     while True:
         user_input = input('Enter your message: ')
         input_items.append({'content': user_input, 'role': 'user'})
         result = await Runner.run(head_agent, input_items)
-
         for new_item in result.new_items:
             agent_name = new_item.agent.name
             if isinstance(new_item, MessageOutputItem):
@@ -76,6 +83,9 @@ async def main():
             else:
                 print(f'{agent_name}: Skipping item: {new_item.__class__.__name__}')
         input_items = result.to_input_list()
+
+        pr.pres.save(f'test_{iteration}.pptx')
+        iteration += 1
 
 
 if __name__ == '__main__':
