@@ -27,13 +27,3 @@ HEAD_TOOLS = [
         tool_description='Управляет графиками и диаграммами: создание, редактирование, настройка параметров и обновление данных для визуализации.',
     ),
 ]
-
-TEXT_TOOLS = []
-
-SLIDE_TOOLS = []
-
-TABLE_TOOLS = []
-
-IMAGE_TOOLS = []
-
-CHART_TOOLS = []

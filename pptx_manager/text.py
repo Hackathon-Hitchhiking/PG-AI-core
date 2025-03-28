@@ -12,12 +12,12 @@ from pptx.dml.color import RGBColor
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml import parse_xml
 from pptx.shapes.autoshape import Shape
-from pptx.slide import Slides
+from pptx.slide import Slide
 from pptx.text.text import Font
 from pptx.util import Pt
 
 from pptx_manager.models import TextFrameShape, UpdateTextFrameOpts
-from pptx_manager.utils import hex_to_rgb
+from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
 
 class TextFrameManager:
@@ -31,7 +31,7 @@ class TextFrameManager:
             shape.model_dump(exclude={'text_manager', 'font_manager'}) for shape in self.text_frame_shapes[slide_id]
         ]
 
-    def _get_font_color(self, slide: Slides, font: Font) -> tuple:
+    def _get_font_color(self, slide: Slide, font: Font) -> tuple:
         # https://stackoverflow.com/questions/54692768/python-pptx-read-font-color
         font_color = font.color
 
@@ -86,6 +86,7 @@ class TextFrameManager:
 
         return font_size
 
+    # @function_tool
     def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
         if isinstance(opts, dict):
             opts = UpdateTextFrameOpts(**opts)
@@ -147,7 +148,7 @@ class TextFrameManager:
                 continue
             yield frame
 
-    def _create_undefined_font(self, unified_font: Font, base_font: Font, slide: Slides) -> Font:
+    def _create_undefined_font(self, unified_font: Font, base_font: Font, slide: Slide) -> Font:
         unified_font.name = base_font.name
         unified_font.size = Pt(self._get_font_size(base_font))
         unified_font.bold = base_font.bold
@@ -159,9 +160,7 @@ class TextFrameManager:
 
         return unified_font
 
-    def parse_text_frame_shape(
-        self, slide_id: int, shape_id: int, slide: Slides, shape: Shape
-    ) -> TextFrameShape | None:
+    def parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
         if shape.text == '':
             return None
         try:
@@ -189,6 +188,8 @@ class TextFrameManager:
             single_run = paragraph.add_run()
             single_run.text = merged_text
             unified_font = single_run.font
+
+            slide = get_slide_from_shape(shape)
 
             unified_font = self._create_undefined_font(unified_font, first_run_font, slide)
 
@@ -230,12 +231,10 @@ class TextFrameManager:
             shape_id = 1
             for shape in slide.shapes:
                 if shape.has_text_frame:
-                    res = self.parse_text_frame_shape(slide_id, shape_id, slide, shape)
+                    res = self.parse_text_shape(slide_id, shape_id, shape)
                     if res is not None:
                         shape_id += 1
             slide_id += 1
-
-        logger.debug(f'frames = {self.text_frame_shapes}')
 
         self.update_text_frame_shape(
             1,

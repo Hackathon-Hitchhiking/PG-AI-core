@@ -1,8 +1,8 @@
 from agents import Agent
 
-from . import prompts, tools
+from . import prompts
 
 
 class TextAgent(Agent):
-    def __init__(self) -> None:
-        super().__init__(name='TextAgent', instructions=prompts.TEXT_PROMPT, tools=tools.TEXT_TOOLS, model='gpt-4o')
+    def __init__(self, tools: list) -> None:
+        super().__init__(name='TextAgent', instructions=prompts.TEXT_PROMPT, tools=tools, model='gpt-4o')

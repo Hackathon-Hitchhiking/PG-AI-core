@@ -1,10 +1,6 @@
-from agents import Agent
-
-from . import prompts, tools
+from agents import Agent, ComputerTool, FileSearchTool, FunctionTool, WebSearchTool
 
 
 class HeadAgent(Agent):
-    def __init__(self) -> None:
-        super().__init__(
-            name='HeadController', instructions=prompts.HEAD_PROMPT, tools=tools.HEAD_TOOLS, model='gpt-4o'
-        )
+    def __init__(self, tools: list[FunctionTool | FileSearchTool | WebSearchTool | ComputerTool]) -> None:
+        super().__init__(name='HeadController', instructions=tools, tools=tools, model='gpt-4o')
