@@ -5,6 +5,7 @@ from collections.abc import Iterator
 
 import numpy as np
 
+from agents import function_tool
 from loguru import logger
 from PIL import ImageColor
 from pptx import Presentation
@@ -30,6 +31,17 @@ class TextFrameManager:
         return [
             shape.model_dump(exclude={'text_manager', 'font_manager'}) for shape in self.text_frame_shapes[slide_id]
         ]
+
+    def get_all_text_frame_json(self) -> dict:
+        text_frame_json = {}
+
+        for slide_id, shapes in self.text_frame_shapes.items():
+            shapes_json = []
+            for shape in shapes:
+                shapes_json.append(shape.model_dump(exclude={'text_manager', 'font_manager'}))
+            text_frame_json[slide_id] = shapes_json
+
+        return text_frame_json
 
     def _get_font_color(self, slide: Slide, font: Font) -> tuple:
         # https://stackoverflow.com/questions/54692768/python-pptx-read-font-color
@@ -86,8 +98,51 @@ class TextFrameManager:
 
         return font_size
 
-    # @function_tool
-    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
+    @function_tool
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts):
+        """
+        Update the properties of a text frame shape in a specific slide.
+
+        This function allows for the modification of various text attributes including content,
+        color, size, and style (bold, italic, underline).
+
+        Parameters:
+        -----------
+        slide_id : int
+            The ID of the slide containing the text frame shape to be updated.
+        shape_id : int | None
+            The ID of the shape to be updated. If None, assumes the all shapes on the slide.
+        opts : UpdateTextFrameOpts
+            An object containing the options for updating the text frame. Can be passed as a
+            dictionary, which will be converted to UpdateTextFrameOpts internally.
+
+        The UpdateTextFrameOpts class has the following attributes:
+        - self
+            The self method of the class, not to use it
+        - text : str | None, optional
+            The new text content for the shape.
+        - color : list[int] | None, optional
+            The new color for the text, represented as an RGB tuple.
+        - size : int | None, optional
+            The new font size for the text.
+        - bold : bool | None, optional
+            Whether to set the text to bold or not.
+        - italic : bool | None, optional
+            Whether to set the text to italic or not.
+        - underline : bool | None, optional
+            Whether to underline the text or not.
+
+        Notes:
+        ------
+        - Only the attributes specified in the opts object will be updated.
+        - If opts is passed as a dictionary, it will be converted to UpdateTextFrameOpts.
+        - Each attribute update is handled by a separate internal method.
+        - All attributes in UpdateTextFrameOpts are optional and default to None.
+
+        Returns:
+        --------
+        None
+        """
         if isinstance(opts, dict):
             opts = UpdateTextFrameOpts(**opts)
 
@@ -250,4 +305,4 @@ class TextFrameManager:
 if __name__ == '__main__':
     fm = TextFrameManager()
 
-    fm.test('../test_sources/test_dit.pptx')
+    fm.test('../test_data/test_dit.pptx')

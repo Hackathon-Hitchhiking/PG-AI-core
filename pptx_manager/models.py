@@ -24,7 +24,7 @@ class TextFrameShape(BaseModel):
 
 class UpdateTextFrameOpts(BaseModel):
     text: str | None = None
-    color: tuple[int, int, int] | None = None
+    color: list[int] | None = None
     size: int | None = None
     bold: bool | None = None
     italic: bool | None = None
