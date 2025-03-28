@@ -42,6 +42,7 @@ class PPTXManager(
                 parse_fn = self.parse_choice.get(shape.shape_type)
                 if parse_fn is not None:
                     parse_fn(self.slide_count, shape_id, shape)
+                shape_id += 1
             self.slide_count += 1
 
     def get_json_schema(self) -> dict:
