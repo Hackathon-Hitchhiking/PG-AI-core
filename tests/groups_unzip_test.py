@@ -352,6 +352,6 @@ def copy_raw_xml_shape(slide, src_shape, new_left, new_top, new_w, new_h, rot_de
 # ------------------------
 # ПРИМЕР ИСПОЛЬЗОВАНИЯ
 # ------------------------
-pptx_file = "test_sources/test_dit.pptx"
+pptx_file = "../test_data/test_dit.pptx"
 prs = flatten_presentation(pptx_file)
 prs.save("flattened_no_groups.pptx")

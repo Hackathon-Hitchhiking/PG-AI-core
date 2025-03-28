@@ -51,10 +51,10 @@ def create_test_template(path: str) -> None:
 
 if __name__ == '__main__':
     # Ensure the 'test_sources' directory exists
-    os.makedirs('test_sources', exist_ok=True)
+    os.makedirs('../test_sources', exist_ok=True)
 
     # Create the template in test_sources/test_template.pptx
-    template_path = os.path.join('test_sources', 'test_template.pptx')
+    template_path = os.path.join('../test_sources', 'test_template.pptx')
     create_test_template(template_path)
 
     print(f'Created test template at: {template_path}')

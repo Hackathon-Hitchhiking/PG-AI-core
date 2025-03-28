@@ -29,7 +29,7 @@ class PPTXTester:
         """
         self.test_file = test_file
         self.manager = PPTXManager(test_file)
-        self.temp_dir = 'test_temp'
+        self.temp_dir = '../test_temp'
         self._setup_environment()
 
         # Test counters
@@ -190,7 +190,7 @@ class PPTXTester:
         test_name = 'Apply Slide Template'
         try:
             # Adjust path to point to a valid .pptx template if you have one
-            template_path = 'test_sources/test_template.pptx'
+            template_path = '../test_data/test_template.pptx'
             if not Path(template_path).exists():
                 raise FileNotFoundError('Template file not found. Provide a valid template to test.')
 
@@ -352,7 +352,7 @@ class PPTXTester:
 
 if __name__ == '__main__':
     # Adjust path to your testing PPTX.
-    test_file = 'test_sources/test_template.pptx'
+    test_file = '../test_data/test_template.pptx'
 
     if not Path(test_file).exists():
         print(f'Test file not found: {test_file}')

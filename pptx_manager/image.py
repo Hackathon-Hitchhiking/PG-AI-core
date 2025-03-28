@@ -103,7 +103,7 @@ class ImageManager:
                         shape_id += 1
             slide_id += 1
 
-        new_img = PilImage.open('../test_sources/Pr2.jpg')
+        new_img = PilImage.open('../test_data/Pr2.jpg')
 
         self.replace_image(2, None, image_to_byte_array(new_img))
 

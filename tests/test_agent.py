@@ -24,7 +24,7 @@ load_dotenv()
 if not os.environ.get('OPENAI_API_KEY'):
     os.environ['OPENAI_API_KEY'] = getpass.getpass('Enter API key for OpenAI: ')
 
-manager = PPTXManager('test_sources/test_dit.pptx')
+manager = PPTXManager('../test_data/test_dit.pptx')
 parse_docstring = True
 tools = [
     tool(manager.get_presentation_info, parse_docstring=parse_docstring),
@@ -102,7 +102,7 @@ def process_user_request(query: str, history: ChatMessageHistory):
 
 
 # Create output directory
-Path('test_conversation').mkdir(exist_ok=True)
+Path('../test_conversation').mkdir(exist_ok=True)
 
 # Initialize conversation history
 history = ChatMessageHistory()
