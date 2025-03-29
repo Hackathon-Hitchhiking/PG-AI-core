@@ -17,13 +17,13 @@ from tools.schemas import ChartData as SchemaChartData
 
 class PPTXTester:
     """
-    A test harness for validating all public methods in PPTXManager.
+    A test.pptx harness for validating all public methods in PPTXManager.
     Tracks the number of passed/failed tests and prints detailed results.
     """
 
     def __init__(self, test_file: str) -> None:
         """
-        Initialize the tester with a test PPTX file and create a PPTXManager instance.
+        Initialize the tester with a test.pptx PPTX file and create a PPTXManager instance.
         Args:
             test_file (str): Path to an existing .pptx presentation for testing.
         """
@@ -39,7 +39,7 @@ class PPTXTester:
 
     def _setup_environment(self) -> None:
         """
-        Create/ensure the output directory exists for saving modified test results.
+        Create/ensure the output directory exists for saving modified test.pptx results.
         """
         Path(self.temp_dir).mkdir(exist_ok=True)
         self.output_pptx = str(Path(self.temp_dir) / 'output.pptx')
@@ -47,11 +47,11 @@ class PPTXTester:
 
     def _print_result(self, test_name: str, success: bool, error: str = '') -> None:
         """
-        Print the result of each test, tracking total, passed, and failed counts.
+        Print the result of each test.pptx, tracking total, passed, and failed counts.
 
         Args:
-            test_name (str): The descriptive name of the test.
-            success (bool): Whether the test passed or not.
+            test_name (str): The descriptive name of the test.pptx.
+            success (bool): Whether the test.pptx passed or not.
             error (str): If failed, the error/traceback to display.
         """
         self.total_tests += 1
@@ -192,7 +192,7 @@ class PPTXTester:
             # Adjust path to point to a valid .pptx template if you have one
             template_path = '../test_data/test_template.pptx'
             if not Path(template_path).exists():
-                raise FileNotFoundError('Template file not found. Provide a valid template to test.')
+                raise FileNotFoundError('Template file not found. Provide a valid template to test.pptx.')
 
             # Apply template to the first slide
             self.manager.apply_slide_template(1, template_path)
@@ -280,7 +280,7 @@ class PPTXTester:
         """
         test_name = 'Image Handling'
         try:
-            # Insert test image (a tiny 1x1 PNG base64-encoded)
+            # Insert test.pptx image (a tiny 1x1 PNG base64-encoded)
             test_image = base64.b64decode(
                 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEpwGkN600QAAAAABJRU5ErkJggg=='
             )

@@ -58,6 +58,9 @@ class PPTXManager(
 
         return slide_json
 
+    def save(self, path):
+        self.pres.save(path)
+
 
 if __name__ == '__main__':
     pr = PPTXManager('../test_sources/test_dit.pptx')

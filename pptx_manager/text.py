@@ -125,7 +125,8 @@ class TextFrameManager:
         Returns:
             None
         """
-        logger.info(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
+        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
+
         if isinstance(opts, dict):
             opts = UpdateTextFrameOpts(**opts)
 

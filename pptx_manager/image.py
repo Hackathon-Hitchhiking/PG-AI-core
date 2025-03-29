@@ -3,6 +3,7 @@ import io
 from collections import defaultdict
 from collections.abc import Iterator
 
+from loguru import logger
 from PIL import Image as PilImage
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -47,6 +48,8 @@ class ImageManager:
             shape.blob = new_picture
 
     def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateImageFrameOpts | dict):
+        logger.debug(f'invokes function with parameters: {slide_id}, {shape_id}, {opts}')
+
         if isinstance(opts, dict):
             opts = UpdateImageFrameOpts(**opts)
 
