@@ -123,7 +123,7 @@ class TextFrameManager:
             - All attributes in `UpdateTextFrameOpts` are optional and default to None.
 
         Returns:
-            None
+            str: Confirmation of the completion of the task
         """
         logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
 
@@ -147,6 +147,8 @@ class TextFrameManager:
 
         if opts.size is not None:
             self._update_size_text_frame_shape(slide_id, shape_id, opts.size)
+
+        return 'Done'
 
     def _update_text_text_frame_shape(self, slide_id: int, shape_id: int | None, new_text: str) -> None:
         for frame in self._get_frame(slide_id, shape_id):

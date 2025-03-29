@@ -71,6 +71,7 @@ head_agent = Team(
     ],
     show_tool_calls=True,
     markdown=True,
+    show_members_responses=True,
 )
 
 head_agent.run("change the size to the 40 on the first slide to the 'TEST'")
