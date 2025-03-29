@@ -38,7 +38,9 @@ open_sync_client = OpenAI(
     http_client=http_sync_client,
 )
 
-pr = PPTXManager('test_data/test_dit.pptx')
+test_pres_path = os.environ.get('TEST_PRES_PATH')
+
+pr = PPTXManager(test_pres_path)
 
 image_json = pr.get_all_text_frame_json()
 
