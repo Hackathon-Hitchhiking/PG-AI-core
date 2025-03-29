@@ -1,5 +1,7 @@
+from loguru import logger
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.shapes.autoshape import Shape
 
 from pptx_manager.image import ImageManager
 from pptx_manager.shape import ShapeManager
@@ -29,21 +31,35 @@ class PPTXManager(
             MSO_SHAPE_TYPE.PICTURE: self.parse_image_shape,
             MSO_SHAPE_TYPE.AUTO_SHAPE: self.parse_text_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self.parse_text_shape,
+            MSO_SHAPE_TYPE.GROUP: self.parse_shape,
         }
 
-        self.slide_count = 1
+        self.slide_count = len(self.pres.slides)
+
+        self.slide_metadata = {}  # slide_id -> count of the shape id
 
         self.parse_presentation()
 
     def parse_presentation(self):
+        logger.debug(f'Parsing Presentation, len = {len(self.pres.slides)}')
+        slide_id = 1
         for slide in self.pres.slides:
-            shape_id = 1
+            self.slide_metadata[slide_id] = 1
             for shape in slide.shapes:
                 parse_fn = self.parse_choice.get(shape.shape_type)
                 if parse_fn is not None:
-                    parse_fn(self.slide_count, shape_id, shape)
-                shape_id += 1
-            self.slide_count += 1
+                    result = parse_fn(slide_id, self.slide_metadata[slide_id], shape)
+                    if result is not None:
+                        self.slide_metadata[slide_id] += 1
+            slide_id += 1
+
+    def parse_shape(self, slide_id: int, shape_id: int, shape: Shape):
+        for group_shape in shape.shapes:
+            parse_fn = self.parse_choice.get(group_shape.shape_type)
+            if parse_fn is not None:
+                result = parse_fn(slide_id, self.slide_metadata[slide_id], group_shape)
+                if result is not None:
+                    self.slide_metadata[slide_id] += 1
 
     def get_json_schema(self) -> dict:
         slide_json = {}
@@ -63,7 +79,7 @@ class PPTXManager(
 
 
 if __name__ == '__main__':
-    pr = PPTXManager('../test_sources/test_dit.pptx')
+    pr = PPTXManager('../test_data/test_dit.pptx')
 
     pr.parse_presentation()
 

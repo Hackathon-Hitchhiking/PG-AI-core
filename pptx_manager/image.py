@@ -73,7 +73,7 @@ class ImageManager:
                 continue
             yield frame
 
-    def parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> defaultdict[str, list[ImageFrameShape]]:
+    def parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> ImageFrameShape:
         width = shape.width
         height = shape.height
         image = shape.image
@@ -91,7 +91,7 @@ class ImageManager:
 
         self.image_frame_shapes[slide_id].append(image_frame_shape)
 
-        return self.image_frame_shapes
+        return image_frame_shape
 
     def test(self, source):
         self._pres = Presentation(source)
