@@ -7,6 +7,7 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.team import Team
 from dotenv import load_dotenv
+from loguru import logger
 from openai import AsyncOpenAI, OpenAI
 
 from pptx_manager.main import PPTXManager
@@ -110,7 +111,6 @@ head_agent = Team(
 
 # Initial description of the presentation
 response = head_agent.run(f'presentation:{pr_json}\n\nОпиши содержимое презентации.')
-print(response.content)
 
 # Infinite dialogue loop
 num = 1
@@ -122,10 +122,9 @@ while True:
 
     response = head_agent.run(f'presentation:{pr_json}\n\n{user_input}')
     print(response.content)
-    print(response.formatted_tool_calls)
-    print(response.event)
-    print([response.tools for response in response.member_responses if response.tools is not None])
+    logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
+    logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
     # Save the updated presentation
     pr.save(f'test_{num}.pptx')
-    print(f'Презентация сохранена как test_{num}.pptx')
+    logger.debug(f'Презентация сохранена как test_{num}.pptx')
     num += 1
