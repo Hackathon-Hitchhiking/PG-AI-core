@@ -97,7 +97,7 @@ class TextFrameManager:
 
         return font_size
 
-    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts):
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
         """Updates the properties of a text frame shape in a specific slide.
 
         Modifies various text attributes, including content, color, size, and style (bold, italic, underline).
