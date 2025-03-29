@@ -122,7 +122,9 @@ while True:
 
     response = head_agent.run(f'presentation:{pr_json}\n\n{user_input}')
     print(response.content)
-
+    print(response.formatted_tool_calls)
+    print(response.event)
+    print([response.tools for response in response.member_responses if response.tools is not None])
     # Save the updated presentation
     pr.save(f'test_{num}.pptx')
     print(f'Презентация сохранена как test_{num}.pptx')
