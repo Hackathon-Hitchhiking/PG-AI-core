@@ -105,22 +105,19 @@ class TextFrameManager:
         Args:
             slide_id (int): The ID of the slide containing the text frame shape to be updated.
             shape_id (int | None): The ID of the shape to be updated. If None, updates all shapes on the slide.
-            opts (UpdateTextFrameOpts): An object containing the options for updating the text frame.
-                If passed as a dictionary, it will be converted to `UpdateTextFrameOpts`.
-
-        Attributes of `UpdateTextFrameOpts`:
-            text (str | None, optional): The new text content for the shape.
-            color (list[int] | None, optional): The new text color as an RGB tuple.
-            size (int | None, optional): The new font size for the text.
-            bold (bool | None, optional): Whether to set the text to bold.
-            italic (bool | None, optional): Whether to set the text to italic.
-            underline (bool | None, optional): Whether to underline the text.
+            opts (dict): An object containing the options for updating the text frame.
+                -   text (str | None, optional): The new text content for the shape.
+                -   color (list[int] | None, optional): The new text color as an RGB tuple.
+                -   size (int | None, optional): The new font size for the text.
+                -   bold (bool | None, optional): Whether to set the text to bold.
+                -   italic (bool | None, optional): Whether to set the text to italic.
+                -   underline (bool | None, optional): Whether to underline the text.
 
         Notes:
-            - Only the attributes specified in `opts` will be updated.
-            - If `opts` is a dictionary, it will be converted to `UpdateTextFrameOpts`.
-            - Each attribute update is handled by a separate internal method.
-            - All attributes in `UpdateTextFrameOpts` are optional and default to None.
+            -   Only the attributes specified in `opts` will be updated.
+            -   If `opts` is a dictionary, it will be converted to `UpdateTextFrameOpts`.
+            -   Each attribute update is handled by a separate internal method.
+            -   All attributes in `UpdateTextFrameOpts` are optional and default to None.
 
         Returns:
             str: Confirmation of the completion of the task
