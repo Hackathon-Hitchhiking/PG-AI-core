@@ -177,4 +177,5 @@ cython_debug/
 
 test_sources/extracted_images
 test_sources/output_presentation.pptx
+test_agent.py
 
