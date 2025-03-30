@@ -103,6 +103,20 @@ class PPTXManager(
             ),
         )
 
+    def delete_text_shape(self, slide_id: int, shape_id: int) -> str:
+        shape = self._get_text_frame_shape(slide_id, shape_id)
+        self._delete_text_frame_shape(slide_id, shape_id)
+
+        try:
+            el = shape.shape_manager.element
+            parent = el.getparent()
+            parent.remove(el)
+        except AttributeError:
+            logger.warning(f'shape {shape_id} not found in shape_manager')
+            return 'The unknown shape id'
+
+        return 'Success'
+
     def save(self, path):
         self.pres.save(path)
 
@@ -137,6 +151,13 @@ if __name__ == '__main__':
         ),
     )
 
-    logger.debug(f'text_frames = {pr.get_text_frame_json(1)}')
+    logger.debug(f'before delete text_frames = {pr.get_text_frame_json(1)}')
+
+    pr.delete_text_shape(1, 1)
+    pr.delete_text_shape(1, 2)
+    pr.delete_text_shape(1, 6)
+    pr.delete_text_shape(1, 27)
+
+    logger.debug(f'after delete text_frames = {pr.get_text_frame_json(1)}')
 
     pr.save('test_create.pptx')

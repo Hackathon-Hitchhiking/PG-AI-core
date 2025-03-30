@@ -3,6 +3,7 @@ from typing import Any
 
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
+from pptx.text.text import Font, TextFrame
 from pydantic import BaseModel
 
 
@@ -19,10 +20,12 @@ class TextFrameShape(BaseModel):
     strike: bool | None = None
     color: tuple | None = None
 
-    # the manager of the shape block. import pptx.text.text.TextFrame
-    text_manager: Any
-    # the manager of the shape.paragraph.runs. import pptx.text.text.Font
-    font_manager: Any
+    text_manager: TextFrame
+    font_manager: Font
+    shape_manager: Shape
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class TextFrameOpts(BaseModel):

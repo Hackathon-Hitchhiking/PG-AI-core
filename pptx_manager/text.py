@@ -25,11 +25,14 @@ class TextFrameManager:
     def __init__(self):
         self.pres = None
 
-        self.text_frame_shapes = defaultdict(list[TextFrameShape])  # slide_id -> text_frame_shape
+        self.text_frame_shapes: defaultdict[int, list[TextFrameShape]] = defaultdict(
+            list[TextFrameShape]
+        )  # slide_id -> text_frame_shape
 
     def get_text_frame_json(self, slide_id: int) -> list[dict]:
         return [
-            shape.model_dump(exclude={'text_manager', 'font_manager'}) for shape in self.text_frame_shapes[slide_id]
+            shape.model_dump(exclude={'text_manager', 'font_manager', 'shape_manager'})
+            for shape in self.text_frame_shapes[slide_id]
         ]
 
     def get_all_text_frame_json(self) -> dict:
@@ -180,6 +183,12 @@ class TextFrameManager:
             frame.font_manager.size = Pt(new_size)
             frame.font_size = new_size
 
+    def _delete_text_frame_shape(self, slide_id: int, shape_id: int) -> None:
+        frames = self.text_frame_shapes[slide_id]
+        for index, frame in enumerate(frames):
+            if frame.shape_id == shape_id:
+                del frames[index]
+
     def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
         frames = self.text_frame_shapes[slide_id]
         for frame in frames:
@@ -198,6 +207,10 @@ class TextFrameManager:
         copy_font.color.rgb = RGBColor(*self._get_font_color(slide, base_font))
 
         return copy_font
+
+    def _get_text_frame_shape(self, slide_id: int, shape_id: int | None) -> TextFrameShape | None:
+        for frame in self._get_frame(slide_id, shape_id):
+            return frame
 
     def _parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
         if shape.text == '' and shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
@@ -260,6 +273,7 @@ class TextFrameManager:
             color=font_color,
             text_manager=text_frame,
             font_manager=text_frame_font,
+            shape_manager=shape,
         )
 
         self.text_frame_shapes[slide_id].append(text_frame_shape)

@@ -71,6 +71,16 @@ class SlideManager:
 
         return shape, shape_id
 
+    def _delete_shape_from_slide(self, slide_id: int, shape_id: int):
+        slide = self._get_slide_manager(slide_id)
+
+        shape = slide.shapes[shape_id]
+        el = shape.element
+        parent = el.getparent()
+        parent.remove(el)
+
+        return 'Success'
+
     def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> None:
         """
         Add a new slide at a specific position in the presentation.
