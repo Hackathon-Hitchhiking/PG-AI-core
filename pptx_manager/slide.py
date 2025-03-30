@@ -90,14 +90,14 @@ class SlideManager:
         maintaining presentation integrity throughout the operation.
 
         Args:
-            position (int): 
+            position (int):
                 - 1-based insertion index (1 = first slide)
                 - Valid range: [1, current_slide_count + 1]
-            layout_index (int): 
+            layout_index (int):
                 - Index of layout from slide master (template-dependent)
                 - Default: 0 (first available layout)
                 - Valid range: [0, len(slide_layouts)-1]
-            title (str | None): 
+            title (str | None):
                 - Text for title placeholder (if exists in layout)
                 - None preserves default/empty title
                 - Requires layout with TitleShape placeholder
@@ -145,7 +145,7 @@ class SlideManager:
         if title and new_slide.shapes.title:
             new_slide.shapes.title.text = title
 
-        return "Success"
+        return 'Success'
 
     def test(self, source: str) -> None:
         self.load_presentation(source)

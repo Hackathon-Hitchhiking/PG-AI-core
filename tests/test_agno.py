@@ -39,18 +39,16 @@ open_sync_client = OpenAI(
 )
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
-path_pres = "/home/pocket-brain/PG-AI-core/test_data/test_dit.pptx"
-pr = PPTXManager(path_pres)
+pr = PPTXManager(test_pres_path)
 
-image_json = pr.get_all_text_frame_json()
+text_json = pr.get_all_text_frame_json()
 
-pr_json = pr.get_all_text_frame_json()
+# pr_json = pr.get_all_text_frame_json()
 
 model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
 
 text_agent = Agent(
     name='Text Agent',
-    role='Presentation Text Content Specialist',
     instructions=[
         'Вы — эксперт по управлению текстом в PowerPoint, использующий slide_id (номер слайда) и shape_id (идентификатор текстового элемента) для точного определения местоположения элементов.',
         'Перед выполнением операции всегда проверяйте корректность slide_id и shape_id.',
@@ -61,11 +59,13 @@ text_agent = Agent(
         'После выполнения операции подтверждайте изменения и предоставляйте отчет о проделанной работе.',
         'Не изменяйте макет слайда или структуру презентации без явного запроса.',
         'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
+        f'структура текстовых элементов: {text_json}',
     ],
     tools=[pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape],
     model=model,
     show_tool_calls=True,
     markdown=True,
+    debug_mode=True,
 )
 
 slide_agent = Agent(
@@ -78,12 +78,11 @@ slide_agent = Agent(
     tools=[pr.add_slide_at_position],
     model=model,
     show_tool_calls=True,
-    markdown=True,
+    debug_mode=True,
 )
 
 image_agent = Agent(
     name='Image Agent',
-    role='Presentation Visual Content Specialist',
     instructions=[
         'You are a specialized agent responsible for managing and optimizing visual content within PowerPoint presentations.',
         'Your core responsibilities include:',
@@ -98,14 +97,13 @@ image_agent = Agent(
     tools=[],
     model=model,
     show_tool_calls=True,
-    markdown=True,
+    debug_mode=True,
 )
 
 head_agent = Team(
-    mode='collaborate',
+    mode='coordinate',
     members=[text_agent, slide_agent],
     model=model,
-    success_criteria='Successfully execute all presentation modification tasks with precision and confirmation',
     instructions=[
         'You are a Lead Presentation Manager responsible for orchestrating changes in PowerPoint presentations.',
         'Key responsibilities:',
@@ -120,13 +118,15 @@ head_agent = Team(
         '3. Verify execution',
         '4. Report outcomes clearly',
     ],
+    memory=None,
+    context=None,
     show_tool_calls=True,
-    markdown=True,
     show_members_responses=True,
+    debug_mode=True,
 )
 
 # Initial description of the presentation
-response = head_agent.run(f'presentation:{pr_json}\n\nОпиши содержимое презентации.')
+# response = head_agent.run(f'presentation:{pr_json}\n\nОпиши содержимое презентации.')
 
 # Infinite dialogue loop
 num = 1
@@ -136,7 +136,7 @@ while True:
         print('Диалог завершен.')
         break
 
-    response = head_agent.run(f'presentation:{pr_json}\n\n{user_input}')
+    response = head_agent.run(f'{user_input}')
     print(response.content)
     logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
     logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
