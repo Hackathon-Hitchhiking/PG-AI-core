@@ -40,7 +40,7 @@ class PPTXManager(
         self.parse_presentation()
 
     def parse_presentation(self):
-        logger.debug(f'Parsing Presentation, len = {len(self.pres.slides)}')
+        logger.debug(f'parse_presentation calls with len = {len(self.pres.slides)}')
         slide_id = 1
 
         for slide in self.pres.slides:
@@ -165,15 +165,17 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
+    pr.add_slide_at_position(13, layout_index=0, title='Inserted Slide 1')
+
     pr.create_text_shape(
-        1,
+        -1,
         CreateTextFrameOpts(
             left=300,
             top=200,
             height=500,
             width=600,
             text='evaluate test adding',
-            color=(255, 255, 255),
+            color=(0, 0, 0),
             size=25,
             bold=True,
             italic=False,
@@ -182,7 +184,7 @@ if __name__ == '__main__':
     )
 
     pr.update_text_frame_shape(
-        1,
+        -1,
         1,
         TextFrameOpts(
             text='test after',

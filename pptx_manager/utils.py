@@ -18,3 +18,31 @@ def get_slide_from_shape(shape: BaseShape) -> Slide:
         if isinstance(shape, Slide):
             return shape
     raise ValueError('shape is not in a slide')
+
+
+class CustomList:
+    def __init__(self):
+        self._data = []
+
+    def insert(self, index, value):
+        # If index is larger than the current length, fill the "gap" with None
+        if index > len(self._data):
+            self._data.extend([None] * (index - len(self._data)))
+
+        # Perform normal list insert (shift everything at/after 'index' to the right)
+        self._data.insert(index, value)
+
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        # If index is beyond length, fill up to that index with None
+        if index >= len(self._data):
+            self._data.extend([None] * (index - len(self._data) + 1))
+        self._data[index] = value
+
+    def __len__(self):
+        return len(self._data)
+
+    def __repr__(self):
+        return repr(self._data)

@@ -126,7 +126,7 @@ class TextFrameManager:
         Returns:
             str: Confirmation of the completion of the task
         """
-        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
+        logger.debug(f'update_text_frame_shape calls with parametrs: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
             opts = TextFrameOpts(**opts)
@@ -190,6 +190,8 @@ class TextFrameManager:
                 del frames[index]
 
     def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
+        if slide_id < 0:
+            slide_id = sorted(list(self.text_frame_shapes.keys()))[slide_id]
         frames = self.text_frame_shapes[slide_id]
         for frame in frames:
             if shape_id is not None and shape_id != frame.shape_id:
@@ -276,6 +278,9 @@ class TextFrameManager:
             shape_manager=shape,
         )
 
+        if slide_id < 0:
+            slide_id = len(self.text_frame_shapes) - slide_id
+
         self.text_frame_shapes[slide_id].append(text_frame_shape)
 
         return text_frame_shape
@@ -294,9 +299,9 @@ class TextFrameManager:
             slide_id += 1
 
         self.update_text_frame_shape(
-            1,
-            1,
-            {'text': 'тест', 'italic': True},
+            -1,
+            2,
+            {'text': 'тест', 'italic': True, 'size': 50},
         )
 
         self.pres.save('test.pptx')

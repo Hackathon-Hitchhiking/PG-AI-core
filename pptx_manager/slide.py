@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from loguru import logger
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
@@ -7,13 +5,14 @@ from pptx.slide import Slide
 from pptx.util import Pt
 
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
+from pptx_manager.utils import CustomList
 
 
 class SlideManager:
     def __init__(self):
         self.pres = None
 
-        self.slide_metadata: defaultdict[int, SlideFrame] = defaultdict()
+        self.slide_metadata: CustomList = CustomList()
 
         self._shape_type_creator = {ShapeType.TEXT: lambda slide: slide.shapes.add_textbox}
 
@@ -77,11 +76,10 @@ class SlideManager:
             raise ValueError('Presentation not loaded. Use `load_presentation` first.')
 
         slide_count = len(self.pres.slides)
-        logger.info(f'Total number of slides: {slide_count}')
         return slide_count
 
     def parse_slide(self, slide_id: int, slide: Slide):
-        self.slide_metadata[slide_id] = SlideFrame(slide_manager=slide, shape_count=1)
+        self.slide_metadata.insert(slide_id, SlideFrame(slide_manager=slide, shape_count=1))
 
     def get_shape_count(self, slide_id: int) -> int:
         return self.slide_metadata[slide_id].shape_count
@@ -144,14 +142,6 @@ class SlideManager:
                 - No loaded presentation (code: 0x44F)
                 - Position out of valid bounds (code: 0x450)
                 - Invalid layout index (code: 0x451)
-
-        Notes:
-        - Slide ID Assignment: Generates new unique slide ID (Office365 GUID pattern)
-        - Layout Dependencies:
-
-        Example:
-            add_slide_at_position(3, 2, "New Features")
-            'Success: Slide [ID: 0x8F2D1A] inserted at position 3'
         """
         if not self.pres:
             raise ValueError('Presentation not loaded. Use `load_presentation` first.')
@@ -165,7 +155,9 @@ class SlideManager:
                 f'Invalid layout index {layout_index}. Must be between 0 and {len(self.pres.slide_layouts) - 1}.'
             )
 
-        logger.debug(f'Inserting slide at position={position}, layout_index={layout_index}, title={title}')
+        logger.debug(
+            f'add_slide_at_position calls with parametrs position={position}, layout_index={layout_index}, title={title}'
+        )
 
         slide_layout = self.pres.slide_layouts[layout_index]
         new_slide = self.pres.slides.add_slide(slide_layout)
@@ -178,7 +170,15 @@ class SlideManager:
         if title and new_slide.shapes.title:
             new_slide.shapes.title.text = title
 
-        return 'Success'
+        self.slide_metadata.insert(
+            position,
+            SlideFrame(
+                slide_manager=new_slide,
+                shape_count=0,
+            ),
+        )
+
+        return f'Slide {position} was added'
 
     def test(self, source: str) -> None:
         self.load_presentation(source)
