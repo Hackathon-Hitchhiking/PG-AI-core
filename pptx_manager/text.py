@@ -9,6 +9,7 @@ from loguru import logger
 from PIL import ImageColor
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml import parse_xml
 from pptx.shapes.autoshape import Shape
@@ -16,7 +17,7 @@ from pptx.slide import Slide
 from pptx.text.text import Font
 from pptx.util import Pt
 
-from pptx_manager.models import TextFrameShape, UpdateTextFrameOpts
+from pptx_manager.models import TextFrameOpts, TextFrameShape
 from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
 
@@ -97,7 +98,7 @@ class TextFrameManager:
 
         return font_size
 
-    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: TextFrameOpts | dict):
         """Updates the properties of a text frame shape in a specific slide.
 
         Modifies various text attributes, including content, color, size, and style (bold, italic, underline).
@@ -125,7 +126,7 @@ class TextFrameManager:
         logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
-            opts = UpdateTextFrameOpts(**opts)
+            opts = TextFrameOpts(**opts)
 
         if opts.text is not None:
             self._update_text_text_frame_shape(slide_id, shape_id, opts.text)
@@ -186,20 +187,20 @@ class TextFrameManager:
                 continue
             yield frame
 
-    def _create_undefined_font(self, unified_font: Font, base_font: Font, slide: Slide) -> Font:
-        unified_font.name = base_font.name
-        unified_font.size = Pt(self._get_font_size(base_font))
-        unified_font.bold = base_font.bold
-        unified_font.italic = base_font.italic
-        unified_font.underline = base_font.underline
-        unified_font.language_id = base_font.language_id
+    def _copy_font_properties(self, copy_font: Font, base_font: Font, slide: Slide) -> Font:
+        copy_font.name = base_font.name
+        copy_font.size = Pt(self._get_font_size(base_font))
+        copy_font.bold = base_font.bold
+        copy_font.italic = base_font.italic
+        copy_font.underline = base_font.underline
+        copy_font.language_id = base_font.language_id
 
-        unified_font.color.rgb = RGBColor(*self._get_font_color(slide, base_font))
+        copy_font.color.rgb = RGBColor(*self._get_font_color(slide, base_font))
 
-        return unified_font
+        return copy_font
 
-    def parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
-        if shape.text == '':
+    def _parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
+        if shape.text == '' and shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
             return None
         try:
             text_frame = shape.text_frame
@@ -217,26 +218,30 @@ class TextFrameManager:
             merged_text = '\n'.join(full_text_lines)
 
             if first_run_font is None:
-                logger.warning(f'Could not find first font in text frame, text={merged_text}')
-                return None
+                logger.warning(
+                    f'Could not find base font for text frame with slide_id {slide_id}, shape_id {shape_id} using base shape'
+                )
 
             text_frame.clear()
 
             paragraph = text_frame.paragraphs[0]
             single_run = paragraph.add_run()
             single_run.text = merged_text
-            unified_font = single_run.font
+            text_frame_font = single_run.font
 
             slide = get_slide_from_shape(shape)
 
-            unified_font = self._create_undefined_font(unified_font, first_run_font, slide)
+            if first_run_font is None:
+                text_frame_font = self._copy_font_properties(text_frame_font, single_run.font, slide)
+            else:
+                text_frame_font = self._copy_font_properties(text_frame_font, first_run_font, slide)
 
-            font_size = self._get_font_size(unified_font)
-            font_color = self._get_font_color(slide, unified_font)
-            font_name = unified_font.name
-            bold = unified_font.bold
-            italic = unified_font.italic
-            underline = unified_font.underline
+            font_size = self._get_font_size(text_frame_font)
+            font_color = self._get_font_color(slide, text_frame_font)
+            font_name = text_frame_font.name
+            bold = text_frame_font.bold
+            italic = text_frame_font.italic
+            underline = text_frame_font.underline
 
             text = merged_text
 
@@ -254,7 +259,7 @@ class TextFrameManager:
             underline=underline,
             color=font_color,
             text_manager=text_frame,
-            font_manager=unified_font,
+            font_manager=text_frame_font,
         )
 
         self.text_frame_shapes[slide_id].append(text_frame_shape)
@@ -269,7 +274,7 @@ class TextFrameManager:
             shape_id = 1
             for shape in slide.shapes:
                 if shape.has_text_frame:
-                    res = self.parse_text_shape(slide_id, shape_id, shape)
+                    res = self._parse_text_shape(slide_id, shape_id, shape)
                     if res is not None:
                         shape_id += 1
             slide_id += 1
@@ -279,8 +284,6 @@ class TextFrameManager:
             1,
             {'text': 'тест', 'italic': True},
         )
-
-        print(self.get_text_frame_json(1))
 
         self.pres.save('test.pptx')
 

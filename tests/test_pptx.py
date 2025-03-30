@@ -144,7 +144,7 @@ class PPTXTester:
         """
         test_name = 'Slide Management'
         try:
-            initial_count = len(self.manager.prs.slides)
+            initial_count = len(self.manager.prs.slide_metadata)
             if initial_count == 0:
                 # If no slides, create one
                 self.manager.create_new_slide('Title Slide')
@@ -165,12 +165,12 @@ class PPTXTester:
         """
         test_name = 'Reorder Slides'
         try:
-            slide_count = len(self.manager.prs.slides)
+            slide_count = len(self.manager.prs.slide_metadata)
             if slide_count < 2:
                 # Ensure at least 2 slides exist to reorder
                 self.manager.create_new_slide('Title and Content')
                 self.manager.create_new_slide('Section Header')
-                slide_count = len(self.manager.prs.slides)
+                slide_count = len(self.manager.prs.slide_metadata)
 
             # For example, reverse the slide order
             new_order = list(range(slide_count, 0, -1))

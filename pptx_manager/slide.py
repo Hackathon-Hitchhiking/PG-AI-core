@@ -1,10 +1,20 @@
+from collections import defaultdict
+
 from loguru import logger
 from pptx import Presentation
+from pptx.shapes.autoshape import Shape
+from pptx.slide import Slide
+
+from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
 
 
 class SlideManager:
     def __init__(self):
         self.pres = None
+
+        self.slide_metadata: defaultdict[int, SlideFrame] = defaultdict()
+
+        self._shape_type_creator = {ShapeType.TEXT: lambda slide: slide.shapes.add_textbox}
 
     def load_presentation(self, file_path: str) -> None:
         """
@@ -35,6 +45,31 @@ class SlideManager:
         slide_count = len(self.pres.slides)
         logger.info(f'Total number of slides: {slide_count}')
         return slide_count
+
+    def parse_slide(self, slide_id: int, slide: Slide):
+        self.slide_metadata[slide_id] = SlideFrame(slide_manager=slide, shape_count=1)
+
+    def get_shape_count(self, slide_id: int) -> int:
+        return self.slide_metadata[slide_id].shape_count
+
+    def increase_shape_count(self, slide_id: int, count: int) -> int:
+        self.slide_metadata[slide_id].shape_count += count
+
+        return self.slide_metadata[slide_id].shape_count
+
+    def _get_slide_manager(self, slide_id: int) -> Slide:
+        return self.slide_metadata[slide_id].slide_manager
+
+    def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
+        slide = self._get_slide_manager(slide_id)
+
+        shape_creator = self._shape_type_creator[opts.type](slide)
+
+        shape = shape_creator(opts.left, opts.top, opts.width, opts.height)
+
+        shape_id = self.increase_shape_count(slide_id, 1)
+
+        return shape, shape_id
 
     def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> None:
         """
@@ -73,19 +108,12 @@ class SlideManager:
         if title and new_slide.shapes.title:
             new_slide.shapes.title.text = title
 
-    def save_presentation(self, file_path: str) -> None:
-        if not self.pres:
-            raise ValueError('Presentation not loaded. Use `load_presentation` first.')
-
-        self.pres.save(file_path)
-        logger.info(f'Presentation saved to {file_path}')
-
     def test(self, source: str) -> None:
         self.load_presentation(source)
         self.add_slide_at_position(1, layout_index=0, title='Inserted Slide 1')
         self.add_slide_at_position(3, layout_index=0, title='Inserted Slide at Position 3')
-        output_path = '../test_data/test_output.pptx'
-        self.save_presentation(output_path)
+        output_path = 'test_slide.pptx'
+        self.pres.save(output_path)
 
 
 if __name__ == '__main__':

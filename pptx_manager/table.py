@@ -204,7 +204,7 @@ class TableManager:
 
             self.update_cell(1, new_table_index, 0, 0, 'New Table Content')
 
-            self.save_presentation('../test_data/table_test.pptx')
+            self.save_presentation('test_table.pptx')
 
             logger.success('Test completed successfully.')
 
