@@ -75,7 +75,7 @@ slide_agent = Agent(
         'Вы — эксперт по управлению количеством слайдов в PowerPoint.',
         'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
     ],
-    tools=[pr.add_slide_at_position],
+    tools=[pr.add_slide_at_position, pr.swap_slides],
     model=model,
     show_tool_calls=True,
     debug_mode=True,

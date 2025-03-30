@@ -30,6 +30,39 @@ class SlideManager:
         self.pres = Presentation(file_path)
         logger.info(f'Presentation loaded from {file_path}')
 
+    def swap_slides(self, slide_id1: int, slide_id2: int) -> str:
+        """
+        Swaps the positions of two slides in the presentation.
+
+        Args:
+            slide_id1 (int): The 1-based index of the first slide to swap
+            slide_id2 (int): The 1-based index of the second slide to swap
+
+        Returns:
+            str: 'Success' if the swap was successful
+
+        Raises:
+            ValueError: If no presentation is loaded or invalid slide indices
+        """
+        if not self.pres:
+            raise ValueError('Presentation not loaded. Use `load_presentation` first.')
+
+        slides = self.pres.slides._sldIdLst
+        total_slides = len(slides)
+
+        if not (1 <= slide_id1 <= total_slides and 1 <= slide_id2 <= total_slides):
+            raise ValueError(f'Invalid slide indices. Must be between 1 and {total_slides}')
+
+        # Convert to 0-based indices
+        idx1 = slide_id1 - 1
+        idx2 = slide_id2 - 1
+
+        # Perform the swap
+        slides[idx1], slides[idx2] = slides[idx2], slides[idx1]
+
+        logger.info(f'Swapped slides at positions {slide_id1} and {slide_id2}')
+        return 'Success'
+
     def get_slide_count(self) -> int:
         """
         Get the total number of slides in the loaded presentation.
