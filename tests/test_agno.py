@@ -23,7 +23,7 @@ def str2bool(value: str) -> bool:
     return str(value).lower() in ('true', '1', 'yes', 'y', 'on')
 
 
-if str2bool(os.environ.get('USE_PROXY_URLS', 'False')):
+if str2bool(os.environ.get('USE_PROXY_URLS', 'True')):
     http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
     http_sync_client = httpx.Client(proxy='http://127.0.0.1:1080')
 else:
@@ -39,8 +39,8 @@ open_sync_client = OpenAI(
 )
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
-
-pr = PPTXManager(test_pres_path)
+path_pres = "/home/pocket-brain/PG-AI-core/test_data/test_dit.pptx"
+pr = PPTXManager(path_pres)
 
 image_json = pr.get_all_text_frame_json()
 
@@ -68,6 +68,19 @@ text_agent = Agent(
     markdown=True,
 )
 
+slide_agent = Agent(
+    name='Slide Agent',
+    role='Presentation Slide Content Specialist',
+    instructions=[
+        'Вы — эксперт по управлению количеством слайдов в PowerPoint.',
+        'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
+    ],
+    tools=[pr.add_slide_at_position],
+    model=model,
+    show_tool_calls=True,
+    markdown=True,
+)
+
 image_agent = Agent(
     name='Image Agent',
     role='Presentation Visual Content Specialist',
@@ -90,7 +103,7 @@ image_agent = Agent(
 
 head_agent = Team(
     mode='collaborate',
-    members=[text_agent],
+    members=[text_agent, slide_agent],
     model=model,
     success_criteria='Successfully execute all presentation modification tasks with precision and confirmation',
     instructions=[

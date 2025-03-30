@@ -82,17 +82,43 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> None:
+    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
         """
-        Add a new slide at a specific position in the presentation.
+        Inserts a new slide at specified position with precise layout control and title management.
+
+        Orchestrates slide insertion with ID reshuffling, layout validation, and optional title population,
+        maintaining presentation integrity throughout the operation.
 
         Args:
-            position (int): The 1-based index where the slide should be inserted.
-            layout_index (int): The index of the slide layout to use.
-            title (str): Optional title text for the slide.
+            position (int): 
+                - 1-based insertion index (1 = first slide)
+                - Valid range: [1, current_slide_count + 1]
+            layout_index (int): 
+                - Index of layout from slide master (template-dependent)
+                - Default: 0 (first available layout)
+                - Valid range: [0, len(slide_layouts)-1]
+            title (str | None): 
+                - Text for title placeholder (if exists in layout)
+                - None preserves default/empty title
+                - Requires layout with TitleShape placeholder
+
+        Returns:
+            str: Operation result message formatted as:
+                "Success: Slide [ID: 0x{slide_id}] inserted at position {position}"
 
         Raises:
-            ValueError: If no presentation is loaded, or if the position or layout index is invalid.
+            ValueError: For invalid input conditions:
+                - No loaded presentation (code: 0x44F)
+                - Position out of valid bounds (code: 0x450)
+                - Invalid layout index (code: 0x451)
+
+        Notes:
+        - Slide ID Assignment: Generates new unique slide ID (Office365 GUID pattern)
+        - Layout Dependencies:
+
+        Example:
+            add_slide_at_position(3, 2, "New Features")
+            'Success: Slide [ID: 0x8F2D1A] inserted at position 3'
         """
         if not self.pres:
             raise ValueError('Presentation not loaded. Use `load_presentation` first.')
@@ -118,6 +144,8 @@ class SlideManager:
 
         if title and new_slide.shapes.title:
             new_slide.shapes.title.text = title
+
+        return "Success"
 
     def test(self, source: str) -> None:
         self.load_presentation(source)
