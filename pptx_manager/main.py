@@ -74,7 +74,31 @@ class PPTXManager(
 
         return slide_json
 
-    def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts):
+    def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
+        """
+        Creates a new text shape on a specified slide with the given options.
+
+        This function adds a text shape to the presentation and applies the specified
+        formatting options including position, size, text content, and text styling.
+
+        Args:
+            slide_id: The ID of the slide where the text shape will be created.
+            opts: Configuration options for the text shape, including:
+                - left: Left position of the shape in pixels
+                - top: Top position of the shape in pixels
+                - height: Height of the shape in pixels
+                - width: Width of the shape in pixels
+                - text: The text content to display in the shape
+                - color: RGB tuple (r,g,b) for text color
+                - size: Font size in points
+                - bold: Whether text should be bold (True/False)
+                - italic: Whether text should be italic (True/False)
+                - underline: Whether text should be underlined (True/False)
+
+        Returns:
+            str: A status message indicating the result of the operation:
+        """
+        logger.debug(f'create_text_shape calls with parameters slide_id={slide_id}, opts={opts}')
         shape, shape_id = self._add_shape_on_slide(
             slide_id,
             CreateShapeOpts(
@@ -86,9 +110,7 @@ class PPTXManager(
             ),
         )
 
-        result = self._parse_text_shape(slide_id, shape_id, shape)
-
-        logger.debug(f'shape_id = {shape_id}, slide_id = {slide_id}, result = {result}')
+        self._parse_text_shape(slide_id, shape_id, shape)
 
         self.update_text_frame_shape(
             slide_id,
@@ -103,7 +125,26 @@ class PPTXManager(
             ),
         )
 
+        return 'Success'
+
     def delete_text_shape(self, slide_id: int, shape_id: int) -> str:
+        """
+        Deletes a text shape from a specified slide.
+
+        This function removes the text shape with the given shape_id from the slide
+        with the given slide_id. It attempts to remove the shape from both the internal
+        tracking system and the actual presentation object.
+
+        Args:
+            slide_id: The ID of the slide containing the text shape to delete.
+            shape_id: The ID of the text shape to delete.
+
+        Returns:
+            str: A status message indicating the result of the operation:
+                - "Success" if the shape was successfully deleted
+                - "The unknown shape id" if the shape was not found or could not be deleted
+        """
+        logger.debug(f'delete_text_shape calls with parameters slide_id={slide_id}, shape_id={shape_id}')
         shape = self._get_text_frame_shape(slide_id, shape_id)
         self._delete_text_frame_shape(slide_id, shape_id)
 
@@ -127,13 +168,13 @@ if __name__ == '__main__':
     pr.create_text_shape(
         1,
         CreateTextFrameOpts(
-            left=1,
-            top=1,
+            left=300,
+            top=200,
             height=500,
             width=600,
             text='evaluate test adding',
             color=(255, 255, 255),
-            size=60,
+            size=25,
             bold=True,
             italic=False,
             underline=False,
@@ -150,14 +191,5 @@ if __name__ == '__main__':
             size=70,
         ),
     )
-
-    logger.debug(f'before delete text_frames = {pr.get_text_frame_json(1)}')
-
-    pr.delete_text_shape(1, 1)
-    pr.delete_text_shape(1, 2)
-    pr.delete_text_shape(1, 6)
-    pr.delete_text_shape(1, 27)
-
-    logger.debug(f'after delete text_frames = {pr.get_text_frame_json(1)}')
 
     pr.save('test_create.pptx')

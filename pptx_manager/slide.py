@@ -4,6 +4,7 @@ from loguru import logger
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
+from pptx.util import Pt
 
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
 
@@ -64,8 +65,8 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-
-        shape = shape_creator(opts.left, opts.top, opts.width, opts.height)
+        # TODO change to Pixels
+        shape = shape_creator(Pt(opts.left), Pt(opts.top), opts.width, opts.height)
 
         shape_id = self.increase_shape_count(slide_id, 1)
 

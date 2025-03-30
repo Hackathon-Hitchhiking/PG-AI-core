@@ -61,7 +61,7 @@ text_agent = Agent(
         '- Confirming changes after execution',
         'Always acknowledge commands and provide feedback on completed actions.',
     ],
-    tools=[pr.update_text_frame_shape],
+    tools=[pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape],
     model=model,
     show_tool_calls=True,
     markdown=True,
