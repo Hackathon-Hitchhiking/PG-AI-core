@@ -115,7 +115,7 @@ class TextFrameManager:
                 -   underline (bool | None, optional): Установить подчеркивание текста или нет.
 
         Returns:
-            str: Подтверждение завершения задачи
+            str: Сообщение о выполненных изменениях, включая ID слайда, фигур, и измененных параметрах.
         """
         logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
 

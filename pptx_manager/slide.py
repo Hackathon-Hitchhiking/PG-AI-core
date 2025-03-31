@@ -11,7 +11,7 @@ from pptx_manager.utils import CustomList
 
 
 class SlideManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.pres = None
 
         self.slide_metadata: CustomList = CustomList()
@@ -22,40 +22,40 @@ class SlideManager:
         }
 
     def load_presentation(self, file_path: str) -> None:
-        """
-        Load an existing PowerPoint presentation from the specified file path.
-
-        Args:
-            file_path (str): The path to the PowerPoint (.pptx) file to load.
-
-        Raises:
-            ValueError: If the file cannot be loaded.
-        """
         self.pres = Presentation(file_path)
-        logger.info(f'Presentation loaded from {file_path}')
+        logger.info(f'Презентация загружена из {file_path}')
 
     def swap_slides(self, slide_id1: int, slide_id2: int) -> str:
         """
-        Swaps the positions of two slides in the presentation.
+        Меняет местами позиции двух слайдов в презентации.
+
+        Выполняет обмен позициями между двумя слайдами, идентифицируемыми их номерами.
+        Нумерация слайдов начинается с 1.
+
+        -   Требует загруженной презентации.
+        -   Проверяет валидность индексов слайдов.
+        -   Производит обмен на уровне внутреннего списка слайдов.
 
         Args:
-            slide_id1 (int): The 1-based index of the first slide to swap
-            slide_id2 (int): The 1-based index of the second slide to swap
+            slide_id1 (int): Номер первого слайда для обмена (1-based индекс).
+            slide_id2 (int): Номер второго слайда для обмена (1-based индекс).
 
         Returns:
-            str: 'Success' if the swap was successful
+            str: 'Success' при успешном выполнении операции.
 
         Raises:
-            ValueError: If no presentation is loaded or invalid slide indices
+            ValueError: Если презентация не загружена или указаны недопустимые индексы слайдов.
         """
         if not self.pres:
-            raise ValueError('Presentation not loaded. Use `load_presentation` first.')
+            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
+            raise ValueError(msg)
 
         slides = self.pres.slides._sldIdLst
         total_slides = len(slides)
 
         if not (1 <= slide_id1 <= total_slides and 1 <= slide_id2 <= total_slides):
-            raise ValueError(f'Invalid slide indices. Must be between 1 and {total_slides}')
+            msg = f'Недопустимые номера слайдов. Номера должны быть от 1 до {total_slides}'
+            raise ValueError(msg)
 
         # Convert to 0-based indices
         idx1 = slide_id1 - 1
@@ -64,26 +64,17 @@ class SlideManager:
         # Perform the swap
         slides[idx1], slides[idx2] = slides[idx2], slides[idx1]
 
-        logger.info(f'Swapped slides at positions {slide_id1} and {slide_id2}')
+        logger.info(f'Слайды на позициях {slide_id1} и {slide_id2} были обменены местами')
         return 'Success'
 
     def get_slide_count(self) -> int:
-        """
-        Get the total number of slides in the loaded presentation.
-
-        Returns:
-            int: The total number of slides in the presentation.
-
-        Raises:
-            ValueError: If no presentation is loaded.
-        """
         if not self.pres:
-            raise ValueError('Presentation not loaded. Use `load_presentation` first.')
+            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
+            raise ValueError(msg)
 
-        slide_count = len(self.pres.slides)
-        return slide_count
+        return len(self.pres.slides)
 
-    def parse_slide(self, slide_id: int, slide: Slide):
+    def parse_slide(self, slide_id: int, slide: Slide) -> None:
         self.slide_metadata.insert(slide_id, SlideFrame(slide_manager=slide, shape_count=1))
 
     def get_shape_count(self, slide_id: int) -> int:
@@ -98,7 +89,7 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
-        logger.debug(f'_add_shape_on_slide calls with parameters slide_id={slide_id}, opts={opts}')
+        logger.debug(f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}')
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
@@ -109,8 +100,8 @@ class SlideManager:
 
         return shape, shape_id
 
-    def _add_imagee_on_slide(self, slide_id: int, image: bytes, opts: CreateShapeOpts):
-        logger.debug(f'_add_imagee_on_slide calls with parameters slide_id={slide_id}, opts={opts}')
+    def _add_image_on_slide(self, slide_id: int, image: bytes, opts: CreateShapeOpts) -> tuple[Shape, int]:
+        logger.debug(f'Вызов _add_image_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}')
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes.add_picture(
@@ -121,7 +112,7 @@ class SlideManager:
 
         return shape, shape_id
 
-    def _delete_shape_from_slide(self, slide_id: int, shape_id: int):
+    def _delete_shape_from_slide(self, slide_id: int, shape_id: int) -> str:
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes[shape_id]
@@ -133,48 +124,50 @@ class SlideManager:
 
     def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
         """
-        Inserts a new slide at specified position with precise layout control and title management.
+        Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 
-        Orchestrates slide insertion with ID reshuffling, layout validation, and optional title population,
-        maintaining presentation integrity throughout the operation.
+        Создает новый слайд и вставляет его в указанную позицию презентации,
+        с возможностью установки макета и заголовка.
+
+        -   Позиция указывается в формате 1-based индекса.
+        -   Макет выбирается из доступных макетов презентации.
+        -   Заголовок устанавливается только при наличии placeholder'а в макете.
+        -   Обновляет внутренние метаданные слайдов.
 
         Args:
-            position (int):
-                - 1-based insertion index (1 = first slide)
-                - Valid range: [1, current_slide_count + 1]
-            layout_index (int):
-                - Index of layout from slide master (template-dependent)
-                - Default: 0 (first available layout)
-                - Valid range: [0, len(slide_layouts)-1]
-            title (str | None):
-                - Text for title placeholder (if exists in layout)
-                - None preserves default/empty title
-                - Requires layout with TitleShape placeholder
+            position (int): Позиция для вставки слайда (1-based).
+                -   Допустимый диапазон: [1, количество_слайдов + 1]
+            layout_index (int, optional): Индекс используемого макета.
+                -   По умолчанию: 0 (первый доступный макет)
+                -   Допустимый диапазон: [0, количество_макетов - 1]
+            title (str | None, optional): Текст заголовка слайда.
+                -   None оставляет заголовок пустым
+                -   Применяется только если макет содержит заголовок
 
         Returns:
-            str: Operation result message formatted as:
-                "Success: Slide [ID: 0x{slide_id}] inserted at position {position}"
+            str: Сообщение о результате операции в формате:
+                "Slide {position} was added"
 
         Raises:
-            ValueError: For invalid input conditions:
-                - No loaded presentation (code: 0x44F)
-                - Position out of valid bounds (code: 0x450)
-                - Invalid layout index (code: 0x451)
+            ValueError: При отсутствии загруженной презентации, неверной позиции или недопустимом индексе макета.
         """
         if not self.pres:
-            raise ValueError('Presentation not loaded. Use `load_presentation` first.')
+            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
+            raise ValueError(msg)
 
         max_position = len(self.pres.slides) + 1
         if not (1 <= position <= max_position):
-            raise ValueError(f'Invalid position {position}. Must be between 1 and {max_position}.')
+            msg = f'Недопустимая позиция {position}. Должна быть между 1 и {max_position}.'
+            raise ValueError(msg)
 
         if not (0 <= layout_index < len(self.pres.slide_layouts)):
-            raise ValueError(
-                f'Invalid layout index {layout_index}. Must be between 0 and {len(self.pres.slide_layouts) - 1}.'
+            msg = (
+                f'Недопустимый индекс макета {layout_index}. Должен быть между 0 и {len(self.pres.slide_layouts) - 1}.'
             )
+            raise ValueError(msg)
 
         logger.debug(
-            f'add_slide_at_position calls with parametrs position={position}, layout_index={layout_index}, title={title}'
+            f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}, заголовок={title}'
         )
 
         slide_layout = self.pres.slide_layouts[layout_index]
@@ -196,7 +189,7 @@ class SlideManager:
             ),
         )
 
-        return f'Slide {position} was added'
+        return f'Слайд {position} был добавлен'
 
     def test(self, source: str) -> None:
         self.load_presentation(source)

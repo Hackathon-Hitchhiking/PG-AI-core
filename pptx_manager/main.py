@@ -24,8 +24,8 @@ class PPTXManager(
     SlideManager,
     TableManager,
 ):
-    def __init__(self, source):
-        super(PPTXManager, self).__init__()
+    def __init__(self, source: str | None) -> None:
+        super().__init__()
         TextFrameManager.__init__(self)
         ImageManager.__init__(self)
         ShapeManager.__init__(self)
@@ -45,8 +45,8 @@ class PPTXManager(
 
         self.parse_presentation()
 
-    def parse_presentation(self):
-        logger.debug(f'parse_presentation calls with len = {len(self.pres.slides)}')
+    def parse_presentation(self) -> None:
+        logger.debug(f'Анализ презентации вызван с количеством слайдов = {len(self.pres.slides)}')
         slide_id = 1
 
         for slide in self.pres.slides:
@@ -59,7 +59,7 @@ class PPTXManager(
                         self.increase_shape_count(slide_id, 1)
             slide_id += 1
 
-    def parse_group_shape(self, slide_id: int, shape_id: int, shape: Shape):
+    def parse_group_shape(self, slide_id: int, shape_id: int, shape: Shape) -> None:
         for group_shape in shape.shapes:
             parse_fn = self.parse_choice.get(group_shape.shape_type)
             if parse_fn is not None:
@@ -82,29 +82,28 @@ class PPTXManager(
 
     def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
         """
-        Creates a new text shape on a specified slide with the given options.
+        Создает новую текстовую фигуру на указанном слайде с заданными параметрами.
 
-        This function adds a text shape to the presentation and applies the specified
-        formatting options including position, size, text content, and text styling.
+        Эта функция добавляет текстовую фигуру в презентацию и применяет указанные параметры форматирования, включая позицию, размер, текстовое содержание и стиль текста.
 
         Args:
-            slide_id: The ID of the slide where the text shape will be created.
-            opts: Configuration options for the text shape, including:
-                - left: Left position of the shape in pixels
-                - top: Top position of the shape in pixels
-                - height: Height of the shape in pixels
-                - width: Width of the shape in pixels
-                - text: The text content to display in the shape
-                - color: RGB tuple (r,g,b) for text color
-                - size: Font size in points
-                - bold: Whether text should be bold (True/False)
-                - italic: Whether text should be italic (True/False)
-                - underline: Whether text should be underlined (True/False)
+            slide_id (int): ID слайда, на котором будет создана текстовая фигура.
+            opts (CreateTextFrameOpts): Объект, содержащий параметры для создания текстовой фигуры.
+                -   width (int | None, optional): Ширина рамки текста.
+                -   height (int | None, optional): Высота рамки текста.
+                -   left (int | None, optional): Позиция рамки текста по оси X.
+                -   top (int | None, optional): Позиция рамки текста по оси Y.
+                -   text (str | None, optional): Текстовое содержимое для фигуры.
+                -   color (list[int] | None, optional): Цвет текста в формате RGB кортежа.
+                -   size (int | None, optional): Размер шрифта для текста.
+                -   bold (bool | None, optional): Установить текст жирным или нет.
+                -   italic (bool | None, optional): Установить текст курсивом или нет.
+                -   underline (bool | None, optional): Установить подчеркивание текста или нет.
 
         Returns:
-            str: A status message indicating the result of the operation:
+            str: Сообщение о результате операции с подробным описанием созданной фигуры.
         """
-        logger.debug(f'create_text_shape calls with parameters slide_id={slide_id}, opts={opts}')
+        logger.debug(f'Вызов create_text_shape с параметрами slide_id={slide_id}, opts={opts}')
         shape, shape_id = self._add_shape_on_slide(
             slide_id,
             CreateShapeOpts(
@@ -131,26 +130,22 @@ class PPTXManager(
             ),
         )
 
-        return 'Success'
+        return f'Создана текстовая фигура на слайде {slide_id} (shape_id: {shape_id}) с параметрами: позиция ({opts.left}, {opts.top}), размер ({opts.width}x{opts.height}), текст: "{opts.text}"'
 
     def delete_text_shape(self, slide_id: int, shape_id: int) -> str:
         """
-        Deletes a text shape from a specified slide.
+        Удаляет текстовую фигуру с указанного слайда.
 
-        This function removes the text shape with the given shape_id from the slide
-        with the given slide_id. It attempts to remove the shape from both the internal
-        tracking system and the actual presentation object.
+        Эта функция удаляет текстовую фигуру с заданным shape_id со слайда с заданным slide_id. Она пытается удалить фигуру как из внутренней системы отслеживания, так и из самого объекта презентации.
 
         Args:
-            slide_id: The ID of the slide containing the text shape to delete.
-            shape_id: The ID of the text shape to delete.
+            slide_id (int): ID слайда, содержащего текстовую область для удаления.
+            shape_id (int): ID фигуры для удаления.
 
         Returns:
-            str: A status message indicating the result of the operation:
-                - "Success" if the shape was successfully deleted
-                - "The unknown shape id" if the shape was not found or could not be deleted
+            str: Сообщение о результате операции с информацией об удаленной фигуре.
         """
-        logger.debug(f'delete_text_shape calls with parameters slide_id={slide_id}, shape_id={shape_id}')
+        logger.debug(f'Вызов delete_text_shape с параметрами slide_id={slide_id}, shape_id={shape_id}')
         shape = self._get_text_frame_shape(slide_id, shape_id)
         self._delete_text_frame_shape(slide_id, shape_id)
 
@@ -159,13 +154,25 @@ class PPTXManager(
             parent = el.getparent()
             parent.remove(el)
         except AttributeError:
-            logger.warning(f'shape {shape_id} not found in shape_manager')
-            return 'The unknown shape id'
+            logger.warning(f'Фигура с shape_id={shape_id} не найдена в shape_manager')
+            return f'Неизвестный идентификатор фигуры: {shape_id} на слайде {slide_id}'
 
-        return 'Success'
+        return f'Текстовая фигура с ID {shape_id} успешно удалена со слайда {slide_id}'
 
     def delete_image_shape(self, slide_id: int, shape_id: int) -> str:
-        logger.debug(f'delete_image_shape calls with parameters slide_id={slide_id}, shape_id={shape_id}')
+        """
+        Удаляет фигуру с изображением с указанного слайда.
+
+        Эта функция удаляет фигуру с изображением с заданным shape_id со слайда с заданным slide_id. Она пытается удалить фигуру как из внутренней системы отслеживания, так и из самого объекта презентации.
+
+        Args:
+            slide_id (int): ID слайда, содержащего изображение для удаления.
+            shape_id (int): ID фигуры с изображением для удаления.
+
+        Returns:
+            str: Сообщение о результате операции с информацией об удаленном изображении.
+        """
+        logger.debug(f'Вызов delete_image_shape с параметрами slide_id={slide_id}, shape_id={shape_id}')
         shape = self._get_image_frame_shape(slide_id, shape_id)
         self._delete_image_frame_shape(slide_id, shape_id)
 
@@ -174,16 +181,33 @@ class PPTXManager(
             parent = el.getparent()
             parent.remove(el)
         except AttributeError:
-            logger.warning(f'shape {shape_id} not found in shape_manager')
-            return 'The unknown shape id'
+            logger.warning(f'Фигура с shape_id={shape_id} не найдена в shape_manager')
+            return f'Неизвестный идентификатор фигуры с изображением: {shape_id} на слайде {slide_id}'
 
-        return 'Success'
+        return f'Фигура с изображением (ID {shape_id}) успешно удалена со слайда {slide_id}'
 
     def create_image_shape(self, slide_id: int, opts: CreateImageFrameOpts) -> str:
+        """
+        Создает новую фигуру с изображением на указанном слайде с заданными параметрами.
+
+        Эта функция добавляет изображение в презентацию и применяет указанные параметры форматирования, включая позицию и размер.
+
+        Args:
+            slide_id (int): ID слайда, на котором будет создана фигура с изображением.
+            opts (CreateImageFrameOpts): Объект, содержащий параметры для создания фигуры с изображением.
+                -   width (int | None, optional): Ширина рамки изображения.
+                -   height (int | None, optional): Высота рамки изображения.
+                -   left (int | None, optional): Позиция рамки изображения по оси X.
+                -   top (int | None, optional): Позиция рамки изображения по оси Y.
+                -   image (bytes): Байты изображения для размещения в фигуре.
+
+        Returns:
+            str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
+        """
         logger.debug(
-            f'create_image_shape calls with parameters slide_id={slide_id}, opts={opts.model_dump(exclude={"image"})}'
+            f'Вызов create_image_shape с параметрами slide_id={slide_id}, opts={opts.model_dump(exclude={"image"})}'
         )
-        shape, shape_id = self._add_imagee_on_slide(
+        shape, shape_id = self._add_image_on_slide(
             slide_id,
             opts.image,
             CreateShapeOpts(
@@ -197,9 +221,9 @@ class PPTXManager(
 
         self._parse_image_shape(slide_id, shape_id, shape)
 
-        return 'Success'
+        return f'Создана фигура с изображением на слайде {slide_id} (shape_id: {shape_id}) с параметрами: позиция ({opts.left}, {opts.top}), размер ({opts.width}x{opts.height})'
 
-    def save(self, path):
+    def save(self, path: str) -> None:
         self.pres.save(path)
 
 
