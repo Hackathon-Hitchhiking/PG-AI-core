@@ -99,7 +99,7 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
             - height (float): Высота изображения.
 
     Returns:
-            str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
+        str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
     """
     logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
 
