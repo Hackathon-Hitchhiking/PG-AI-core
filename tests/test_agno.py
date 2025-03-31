@@ -109,7 +109,7 @@ image_agent = Agent(
 )
 
 head_agent = Team(
-    mode='coordinate',
+    mode='route',
     members=[text_agent, slide_agent],
     model=model,
     instructions=[
@@ -129,6 +129,7 @@ head_agent = Team(
         '• Повтори попытку (макс. 2 раза)',
         '• Подключи другого агента',
         '• Сообщи об проблеме',
+        'Если работа выполнена в рамках одного запроса пользователя не надо вызывать агента ещё раз',
     ],
     memory=None,
     context=None,

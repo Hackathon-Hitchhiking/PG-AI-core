@@ -1,3 +1,5 @@
+import io
+
 from loguru import logger
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
@@ -14,7 +16,10 @@ class SlideManager:
 
         self.slide_metadata: CustomList = CustomList()
 
-        self._shape_type_creator = {ShapeType.TEXT: lambda slide: slide.shapes.add_textbox}
+        self._shape_type_creator = {
+            ShapeType.TEXT: lambda slide: slide.shapes.add_textbox,
+            ShapeType.IMAGE: lambda slide: slide.shapes.add_picture,
+        }
 
     def load_presentation(self, file_path: str) -> None:
         """
@@ -93,11 +98,24 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
+        logger.debug(f'_add_shape_on_slide calls with parameters slide_id={slide_id}, opts={opts}')
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
         # TODO change to Pixels
         shape = shape_creator(Pt(opts.left), Pt(opts.top), opts.width, opts.height)
+
+        shape_id = self.increase_shape_count(slide_id, 1)
+
+        return shape, shape_id
+
+    def _add_imagee_on_slide(self, slide_id: int, image: bytes, opts: CreateShapeOpts):
+        logger.debug(f'_add_imagee_on_slide calls with parameters slide_id={slide_id}, opts={opts}')
+        slide = self._get_slide_manager(slide_id)
+
+        shape = slide.shapes.add_picture(
+            io.BytesIO(image), Pt(opts.left), Pt(opts.top), Pt(opts.width), Pt(opts.height)
+        )
 
         shape_id = self.increase_shape_count(slide_id, 1)
 

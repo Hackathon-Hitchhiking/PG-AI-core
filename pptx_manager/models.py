@@ -62,12 +62,16 @@ class CreateShapeOpts(BaseModel):
     type: ShapeType
 
 
-class UpdateImageFrameOpts(BaseModel):
+class ImageFrameOpts(BaseModel):
     width: int | None = None
     height: int | None = None
 
     left: int | None = None
     top: int | None = None
+
+
+class CreateImageFrameOpts(ImageFrameOpts):
+    image: bytes
 
 
 class ImageFrameShape(BaseModel):
@@ -79,7 +83,7 @@ class ImageFrameShape(BaseModel):
     left: int
     top: int
 
-    blob: bytes
+    blob: bytes | None = None
 
     shape_manager: Any
 

@@ -10,7 +10,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.parts.image import Image
 from pptx.shapes.autoshape import Shape
 
-from pptx_manager.models import ImageFrameShape, UpdateImageFrameOpts
+from pptx_manager.models import ImageFrameOpts, ImageFrameShape
 from pptx_manager.utils import get_slide_from_shape
 
 
@@ -25,13 +25,16 @@ class ImageManager:
     def __init__(self):
         self._pres = None
 
-        self.image_frame_shapes = defaultdict(list[ImageFrameShape])  # slide_id -> image_frame_shapes
+        self.image_frame_shapes: defaultdict[int, list[ImageFrameShape]] = defaultdict(
+            list[ImageFrameShape]
+        )  # slide_id -> image_frame_shapes
 
     def get_image_json(self, slide_id: int):
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
 
     def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes):
-        for shape in self._get_frame(slide_id, shape_id):
+        logger.debug(f'replace_image calls with parameters slide_id={slide_id}, shape_id={shape_id}')
+        for shape in self._get_image_frame(slide_id, shape_id):
             slide = get_slide_from_shape(shape.shape_manager)
 
             new_shape = slide.shapes.add_picture(
@@ -47,13 +50,13 @@ class ImageManager:
             shape.shape_manager = new_shape
             shape.blob = new_picture
 
-    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateImageFrameOpts | dict):
+    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: ImageFrameOpts | dict):
         logger.debug(f'invokes function with parameters: {slide_id}, {shape_id}, {opts}')
 
         if isinstance(opts, dict):
-            opts = UpdateImageFrameOpts(**opts)
+            opts = ImageFrameOpts(**opts)
 
-        for shape in self._get_frame(slide_id, shape_id):
+        for shape in self._get_image_frame(slide_id, shape_id):
             if opts.width is not None:
                 shape.shape_manager.width = opts.width
 
@@ -66,18 +69,32 @@ class ImageManager:
             if opts.top is not None:
                 shape.shape_manager.top = opts.top
 
-    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[ImageFrameShape]:
+    def _get_image_frame(self, slide_id: int, shape_id: int | None) -> Iterator[ImageFrameShape]:
         frames = self.image_frame_shapes[slide_id]
         for frame in frames:
             if shape_id is not None and shape_id != frame.shape_id:
                 continue
             yield frame
 
-    def parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> ImageFrameShape:
+    def _get_image_frame_shape(self, slide_id: int, shape_id: int) -> ImageFrameShape | None:
+        for frame in self._get_image_frame(slide_id, shape_id):
+            return frame
+
+    def _delete_image_frame_shape(self, slide_id: int, shape_id: int) -> None:
+        frames = self.image_frame_shapes[slide_id]
+        for index, frame in enumerate(frames):
+            if frame.shape_id == shape_id:
+                del frames[index]
+
+    def _parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> ImageFrameShape:
         width = shape.width
         height = shape.height
-        image = shape.image
-        image_bytes = image.blob
+        try:
+            # if the shape is empty
+            image = shape.image
+            image_bytes = image.blob
+        except AttributeError:
+            image_bytes = None
 
         image_frame_shape = ImageFrameShape(
             shape_id=shape_id,
@@ -88,6 +105,9 @@ class ImageManager:
             blob=image_bytes,
             shape_manager=shape,
         )
+
+        if slide_id < 0:
+            slide_id = len(self.image_frame_shapes) - slide_id
 
         self.image_frame_shapes[slide_id].append(image_frame_shape)
 
@@ -101,7 +121,7 @@ class ImageManager:
             shape_id = 1
             for shape in slide.shapes:
                 if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                    res = self.parse_image_shape(slide_id, shape_id, shape)
+                    res = self._parse_image_shape(slide_id, shape_id, shape)
                     if res is not None:
                         shape_id += 1
             slide_id += 1

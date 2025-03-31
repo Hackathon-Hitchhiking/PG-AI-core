@@ -152,34 +152,34 @@ class TextFrameManager:
         return 'Done'
 
     def _update_text_text_frame_shape(self, slide_id: int, shape_id: int | None, new_text: str) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.text_manager.paragraphs[0].runs[0].text = new_text
             frame.text = new_text
 
     def _update_color_text_frame_shape(
         self, slide_id: int, shape_id: int | None, new_color: tuple[int, int, int]
     ) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.font_manager.color.rgb = RGBColor(new_color[0], new_color[1], new_color[2])
             frame.color = (new_color[0], new_color[1], new_color[2])
 
     def _update_bold_text_frame_shape(self, slide_id: int, shape_id: int | None, bold: bool) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.font_manager.bold = bold
             frame.bold = bold
 
     def _update_italic_text_frame_shape(self, slide_id: int, shape_id: int | None, italic: bool) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.font_manager.italic = italic
             frame.italic = italic
 
     def _update_underline_text_frame_shape(self, slide_id: int, shape_id: int | None, underline: bool) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.font_manager.underline = underline
             frame.underline = underline
 
     def _update_size_text_frame_shape(self, slide_id: int, shape_id: int | None, new_size: int) -> None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             frame.font_manager.size = Pt(new_size)
             frame.font_size = new_size
 
@@ -189,7 +189,7 @@ class TextFrameManager:
             if frame.shape_id == shape_id:
                 del frames[index]
 
-    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
+    def _get_text_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
         if slide_id < 0:
             slide_id = sorted(list(self.text_frame_shapes.keys()))[slide_id]
         frames = self.text_frame_shapes[slide_id]
@@ -211,7 +211,7 @@ class TextFrameManager:
         return copy_font
 
     def _get_text_frame_shape(self, slide_id: int, shape_id: int | None) -> TextFrameShape | None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             return frame
 
     def _parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:

@@ -4,7 +4,13 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 
 from pptx_manager.image import ImageManager
-from pptx_manager.models import CreateShapeOpts, CreateTextFrameOpts, ShapeType, TextFrameOpts
+from pptx_manager.models import (
+    CreateImageFrameOpts,
+    CreateShapeOpts,
+    CreateTextFrameOpts,
+    ShapeType,
+    TextFrameOpts,
+)
 from pptx_manager.shape import ShapeManager
 from pptx_manager.slide import SlideManager
 from pptx_manager.table import TableManager
@@ -29,7 +35,7 @@ class PPTXManager(
         self.pres = Presentation(source)
 
         self.parse_choice = {
-            MSO_SHAPE_TYPE.PICTURE: self.parse_image_shape,
+            MSO_SHAPE_TYPE.PICTURE: self._parse_image_shape,
             MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_text_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self._parse_text_shape,
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
@@ -158,6 +164,41 @@ class PPTXManager(
 
         return 'Success'
 
+    def delete_image_shape(self, slide_id: int, shape_id: int) -> str:
+        logger.debug(f'delete_image_shape calls with parameters slide_id={slide_id}, shape_id={shape_id}')
+        shape = self._get_image_frame_shape(slide_id, shape_id)
+        self._delete_image_frame_shape(slide_id, shape_id)
+
+        try:
+            el = shape.shape_manager.element
+            parent = el.getparent()
+            parent.remove(el)
+        except AttributeError:
+            logger.warning(f'shape {shape_id} not found in shape_manager')
+            return 'The unknown shape id'
+
+        return 'Success'
+
+    def create_image_shape(self, slide_id: int, opts: CreateImageFrameOpts) -> str:
+        logger.debug(
+            f'create_image_shape calls with parameters slide_id={slide_id}, opts={opts.model_dump(exclude={"image"})}'
+        )
+        shape, shape_id = self._add_imagee_on_slide(
+            slide_id,
+            opts.image,
+            CreateShapeOpts(
+                left=opts.left,
+                top=opts.top,
+                height=opts.height,
+                width=opts.width,
+                type=ShapeType.IMAGE,
+            ),
+        )
+
+        self._parse_image_shape(slide_id, shape_id, shape)
+
+        return 'Success'
+
     def save(self, path):
         self.pres.save(path)
 
@@ -165,33 +206,18 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    pr.add_slide_at_position(13, layout_index=0, title='Inserted Slide 1')
+    with open('../test_data/Pr2.jpg', 'rb') as file:
+        image_bytes = file.read()
 
-    pr.create_text_shape(
-        -1,
-        CreateTextFrameOpts(
-            left=300,
-            top=200,
-            height=500,
-            width=600,
-            text='evaluate test adding',
-            color=(0, 0, 0),
-            size=25,
-            bold=True,
-            italic=False,
-            underline=False,
-        ),
-    )
-
-    pr.update_text_frame_shape(
-        -1,
-        1,
-        TextFrameOpts(
-            text='test after',
-            bold=True,
-            italic=True,
-            size=70,
-        ),
-    )
+        pr.create_image_shape(
+            1,
+            CreateImageFrameOpts(
+                left=300,
+                top=400,
+                height=500,
+                width=500,
+                image=image_bytes,
+            ),
+        )
 
     pr.save('test_create.pptx')
