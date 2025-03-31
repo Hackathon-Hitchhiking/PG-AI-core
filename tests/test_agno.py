@@ -87,27 +87,23 @@ slide_agent = Agent(
 
 def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
     """
-    Generate an image using DALL-E 2 based on the provided prompt and place it on the specified slide.
+    Генерирует изображение с помощью DALL-E 2 на основе предоставленного запроса и размещает его на указанном слайде.
 
     Args:
-        prompt (str):
-            The textual prompt for generating the image.
-        slide_id (int):
-            The identifier of the slide where the generated image will be placed.
-        opts (ImageFrameOpts):
-            Configuration options for positioning and sizing the generated image, including:
-            - left (float): The distance from the left edge of the slide.
-            - top (float): The distance from the top edge of the slide.
-            - width (float): The width of the image.
-            - height (float): The height of the image.
+        prompt (str): Текстовый запрос для генерации изображения.
+        slide_id (int): Идентификатор слайда, на котором будет размещено сгенерированное изображение.
+        opts (ImageFrameOpts): Параметры конфигурации для позиционирования и изменения размера сгенерированного изображения.
+            - left (float): Расстояние от левого края слайда.
+            - top (float): Расстояние от верхнего края слайда.
+            - width (float): Ширина изображения.
+            - height (float): Высота изображения.
 
     Returns:
-        str: the message of the success.
+            str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
     """
-    logger.debug(f'create_image called wirth parameters prompt={prompt}, slide_id={slide_id}, opts={opts}')
-    client = OpenAI(http_client=http_sync_client)
+    logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
 
-    response = client.images.generate(
+    response = open_sync_client.images.generate(
         model='dall-e-2',
         prompt=prompt,
         n=1,
@@ -119,7 +115,7 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
 
     image_bytes = base64.b64decode(b64_data)
 
-    pr.create_image_shape(
+    return pr.create_image_shape(
         slide_id,
         CreateImageFrameOpts(
             left=opts.left,
@@ -129,8 +125,6 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
             image=image_bytes,
         ),
     )
-
-    return 'Success'
 
 
 image_agent = Agent(
