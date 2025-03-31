@@ -1,3 +1,4 @@
+import base64
 import getpass
 import os
 
@@ -11,6 +12,7 @@ from loguru import logger
 from openai import AsyncOpenAI, OpenAI
 
 from pptx_manager.main import PPTXManager
+from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
 
 
 load_dotenv()
@@ -82,6 +84,55 @@ slide_agent = Agent(
     debug_mode=True,
 )
 
+
+def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
+    """
+    Generate an image using DALL-E 2 based on the provided prompt and place it on the specified slide.
+
+    Args:
+        prompt (str):
+            The textual prompt for generating the image.
+        slide_id (int):
+            The identifier of the slide where the generated image will be placed.
+        opts (ImageFrameOpts):
+            Configuration options for positioning and sizing the generated image, including:
+            - left (float): The distance from the left edge of the slide.
+            - top (float): The distance from the top edge of the slide.
+            - width (float): The width of the image.
+            - height (float): The height of the image.
+
+    Returns:
+        str: the message of the success.
+    """
+    logger.debug(f'create_image called wirth parameters prompt={prompt}, slide_id={slide_id}, opts={opts}')
+    client = OpenAI(http_client=http_sync_client)
+
+    response = client.images.generate(
+        model='dall-e-2',
+        prompt=prompt,
+        n=1,
+        size='512x512',
+        response_format='b64_json',
+    )
+
+    b64_data = response.data[0].b64_json
+
+    image_bytes = base64.b64decode(b64_data)
+
+    pr.create_image_shape(
+        slide_id,
+        CreateImageFrameOpts(
+            left=opts.left,
+            top=opts.top,
+            width=opts.width,
+            height=opts.height,
+            image=image_bytes,
+        ),
+    )
+
+    return 'Success'
+
+
 image_agent = Agent(
     name='Image Agent',
     instructions=[
@@ -102,7 +153,7 @@ image_agent = Agent(
         '   - Проверка метаданных',
         '   - Контроль слоев',
     ],
-    tools=[],
+    tools=[create_image],
     model=model,
     show_tool_calls=True,
     debug_mode=True,
@@ -110,7 +161,7 @@ image_agent = Agent(
 
 head_agent = Team(
     mode='route',
-    members=[text_agent, slide_agent],
+    members=[text_agent, slide_agent, image_agent],
     model=model,
     instructions=[
         'Вы главный по управлению презентациями: координируешь агентов для правок в PowerPoint',
