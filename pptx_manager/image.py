@@ -10,7 +10,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.parts.image import Image
 from pptx.shapes.autoshape import Shape
 
-from pptx_manager.models import ImageFrameShape, UpdateImageFrameOpts
+from pptx_manager.models import ImageFrameOpts, ImageFrameShape
 from pptx_manager.utils import get_slide_from_shape
 
 
@@ -25,7 +25,9 @@ class ImageManager:
     def __init__(self):
         self._pres = None
 
-        self.image_frame_shapes = defaultdict(list[ImageFrameShape])  # slide_id -> image_frame_shapes
+        self.image_frame_shapes: defaultdict[int, list[ImageFrameShape]] = defaultdict(
+            list[ImageFrameShape]
+        )  # slide_id -> image_frame_shapes
 
     def get_image_json(self, slide_id: int):
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
@@ -49,7 +51,8 @@ class ImageManager:
             str: Сообщение о выполненных изменениях, включая ID слайда и фигуры.
         """
         changes = []
-        for shape in self._get_frame(slide_id, shape_id):
+        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id}')
+        for shape in self._get_image_frame(slide_id, shape_id):
             slide = get_slide_from_shape(shape.shape_manager)
 
             new_shape = slide.shapes.add_picture(
@@ -71,7 +74,7 @@ class ImageManager:
             return f'На слайде {slide_id} не найдено фигур для замены изображения.'
         return f'На слайде {slide_id} заменены изображения в следующих фигурах: {", ".join(changes)}.'
 
-    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateImageFrameOpts | dict) -> str:
+    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: ImageFrameOpts | dict) -> str:
         """
         Обновляет свойства рамки изображения на определенном слайде.
 
@@ -94,10 +97,10 @@ class ImageManager:
         Returns:
             str: Сообщение о выполненных изменениях, включая ID слайда, фигур, и измененных параметрах.
         """
-        logger.debug(f'invokes function with parameters: {slide_id}, {shape_id}, {opts}')
+        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
-            opts = UpdateImageFrameOpts(**opts)
+            opts = ImageFrameOpts(**opts)
 
         updates = {
             attr: getattr(opts, attr) for attr in ['width', 'height', 'left', 'top'] if getattr(opts, attr) is not None
@@ -107,7 +110,7 @@ class ImageManager:
             return 'WARNING: Не переданы параметры для обновления.'
 
         changed_shapes = []
-        for shape in self._get_frame(slide_id, shape_id):
+        for shape in self._get_image_frame(slide_id, shape_id):
             if opts.width is not None:
                 shape.shape_manager.width = opts.width
 
@@ -128,18 +131,33 @@ class ImageManager:
         params_str = ', '.join(f'{attr}={value}' for attr, value in updates.items())
         return f'На слайде {slide_id} обновлены параметры [{params_str}] для фигур: {", ".join(changed_shapes)}'
 
-    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[ImageFrameShape]:
+    def _get_image_frame(self, slide_id: int, shape_id: int | None) -> Iterator[ImageFrameShape]:
         frames = self.image_frame_shapes[slide_id]
         for frame in frames:
             if shape_id is not None and shape_id != frame.shape_id:
                 continue
             yield frame
 
-    def parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> ImageFrameShape:
+    def _get_image_frame_shape(self, slide_id: int, shape_id: int) -> ImageFrameShape | None:
+        for frame in self._get_image_frame(slide_id, shape_id):
+            return frame
+        return None
+
+    def _delete_image_frame_shape(self, slide_id: int, shape_id: int) -> None:
+        frames = self.image_frame_shapes[slide_id]
+        for index, frame in enumerate(frames):
+            if frame.shape_id == shape_id:
+                del frames[index]
+
+    def _parse_image_shape(self, slide_id: int, shape_id: int, shape: Shape) -> ImageFrameShape:
         width = shape.width
         height = shape.height
-        image = shape.image
-        image_bytes = image.blob
+        try:
+            # if the shape is empty
+            image = shape.image
+            image_bytes = image.blob
+        except AttributeError:
+            image_bytes = None
 
         image_frame_shape = ImageFrameShape(
             shape_id=shape_id,
@@ -151,11 +169,14 @@ class ImageManager:
             shape_manager=shape,
         )
 
+        if slide_id < 0:
+            slide_id = len(self.image_frame_shapes) - slide_id
+
         self.image_frame_shapes[slide_id].append(image_frame_shape)
 
         return image_frame_shape
 
-    def test(self, source):
+    def test(self, source: str | None):
         self._pres = Presentation(source)
 
         slide_id = 1
@@ -163,7 +184,7 @@ class ImageManager:
             shape_id = 1
             for shape in slide.shapes:
                 if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                    res = self.parse_image_shape(slide_id, shape_id, shape)
+                    res = self._parse_image_shape(slide_id, shape_id, shape)
                     if res is not None:
                         shape_id += 1
             slide_id += 1

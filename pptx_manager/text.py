@@ -120,7 +120,7 @@ class TextFrameManager:
         Returns:
             str: Подтверждение завершения задачи
         """
-        logger.debug(f'update_text_frame_shape calls with parametrs: {slide_id, shape_id, opts}')
+        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
             opts = TextFrameOpts(**opts)
@@ -132,7 +132,7 @@ class TextFrameManager:
             return 'WARNING: Не переданы параметры для обновления.'
 
         changed_shapes = []
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             if opts.text is not None:
                 frame.text_manager.paragraphs[0].runs[0].text = opts.text
                 frame.text = opts.text
@@ -171,7 +171,7 @@ class TextFrameManager:
             if frame.shape_id == shape_id:
                 del frames[index]
 
-    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
+    def _get_text_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
         if slide_id < 0:
             slide_id = sorted(self.text_frame_shapes.keys())[slide_id]
         frames = self.text_frame_shapes[slide_id]
@@ -193,7 +193,7 @@ class TextFrameManager:
         return copy_font
 
     def _get_text_frame_shape(self, slide_id: int, shape_id: int | None) -> TextFrameShape | None:
-        for frame in self._get_frame(slide_id, shape_id):
+        for frame in self._get_text_frame(slide_id, shape_id):
             return frame
         return None
 
