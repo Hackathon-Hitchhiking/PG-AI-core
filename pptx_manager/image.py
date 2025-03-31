@@ -14,22 +14,21 @@ from pptx_manager.models import ImageFrameOpts, ImageFrameShape
 from pptx_manager.utils import get_slide_from_shape
 
 
-def image_to_byte_array(image: Image):
+def image_to_byte_array(image: Image) -> bytes:
     img_byte_arr = io.BytesIO()
     image.save(img_byte_arr, format=image.format)
-    img_byte_arr = img_byte_arr.getvalue()
-    return img_byte_arr
+    return img_byte_arr.getvalue()
 
 
 class ImageManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._pres = None
 
         self.image_frame_shapes: defaultdict[int, list[ImageFrameShape]] = defaultdict(
             list[ImageFrameShape]
         )  # slide_id -> image_frame_shapes
 
-    def get_image_json(self, slide_id: int):
+    def get_image_json(self, slide_id: int) -> list[dict]:
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
 
     def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes) -> str:

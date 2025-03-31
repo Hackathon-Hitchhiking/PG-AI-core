@@ -22,7 +22,7 @@ from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
 
 class TextFrameManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.pres = None
 
         self.text_frame_shapes: defaultdict[int, list[TextFrameShape]] = defaultdict(
@@ -39,10 +39,7 @@ class TextFrameManager:
         text_frame_json = {}
 
         for slide_id, shapes in self.text_frame_shapes.items():
-            shapes_json = []
-            for shape in shapes:
-                shapes_json.append(shape.model_dump(exclude={'text_manager', 'font_manager'}))
-            text_frame_json[slide_id] = shapes_json
+            text_frame_json[slide_id] = [shape.model_dump(exclude={'text_manager', 'font_manager'}) for shape in shapes]
 
         return text_frame_json
 

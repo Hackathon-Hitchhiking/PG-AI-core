@@ -1,15 +1,12 @@
 import math
+
 from copy import deepcopy
 from io import BytesIO
 
 from pptx import Presentation
-from pptx.enum.dml.color
-from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.dml import MSO_FILL_TYPE, MSO_THEME_COLOR_INDEX
-from pptx.shapes.autoshape import Shape
-from pptx.shapes.group import GroupShape
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.picture import PictureShape
-from pptx.util import Pt
 
 
 def flatten_presentation(pptx_path):
@@ -66,11 +63,11 @@ def parse_group_xfrm(grpSp_element):
     возвращает словарь с полями off_x, off_y, scale_x, scale_y, rot_rad, flipH, flipV и т.д.
     """
     nsmap = grpSp_element.nsmap
-    grpSpPr = grpSp_element.find("p:grpSpPr", nsmap)
+    grpSpPr = grpSp_element.find('p:grpSpPr', nsmap)
     if grpSpPr is None:
         return identity_xfrm()
 
-    xfrm = grpSpPr.find("a:xfrm", nsmap)
+    xfrm = grpSpPr.find('a:xfrm', nsmap)
     if xfrm is None:
         return identity_xfrm()
 
@@ -85,18 +82,18 @@ def parse_shape_xfrm(sp_element):
     nsmap = sp_element.nsmap
     # пытаемся найти spPr (или аналоги)
     spPr = None
-    for tag_name in ["p:spPr", "p:picPr", "p:cxnSpPr", "p:graphicFrameLocks", "p:grpSpPr"]:
+    for tag_name in ['p:spPr', 'p:picPr', 'p:cxnSpPr', 'p:graphicFrameLocks', 'p:grpSpPr']:
         tmp = sp_element.find(tag_name, nsmap)
         if tmp is not None:
             spPr = tmp
             break
     if spPr is None:
-        xfrm = sp_element.find(".//a:xfrm", nsmap)
+        xfrm = sp_element.find('.//a:xfrm', nsmap)
         if xfrm is None:
             return identity_xfrm()
         return parse_xfrm_element(xfrm)
 
-    xfrm = spPr.find("a:xfrm", nsmap)
+    xfrm = spPr.find('a:xfrm', nsmap)
     if xfrm is None:
         return identity_xfrm()
 
@@ -108,55 +105,68 @@ def parse_xfrm_element(xfrm):
     Парсит <a:xfrm>, извлекает off/ext, chOff/chExt, rot, flipH, flipV.
     Возвращает словарь с off_x, off_y, scale_x, scale_y, rot_rad и др.
     """
+
     def emu(val):
         return int(val) if val else 0
 
-    off = xfrm.find("a:off", xfrm.nsmap)
-    ext = xfrm.find("a:ext", xfrm.nsmap)
-    chOff = xfrm.find("a:chOff", xfrm.nsmap)
-    chExt = xfrm.find("a:chExt", xfrm.nsmap)
+    off = xfrm.find('a:off', xfrm.nsmap)
+    ext = xfrm.find('a:ext', xfrm.nsmap)
+    chOff = xfrm.find('a:chOff', xfrm.nsmap)
+    chExt = xfrm.find('a:chExt', xfrm.nsmap)
 
-    flipH = (xfrm.get("flipH") == "1")
-    flipV = (xfrm.get("flipV") == "1")
-    rot_val = xfrm.get("rot")
+    flipH = xfrm.get('flipH') == '1'
+    flipV = xfrm.get('flipV') == '1'
+    rot_val = xfrm.get('rot')
     rot = int(rot_val) if rot_val else 0
     rot_deg = rot / 60000.0
     rot_rad = math.radians(rot_deg)
 
-    off_x = emu(off.get("x")) if off is not None else 0
-    off_y = emu(off.get("y")) if off is not None else 0
-    ext_cx = emu(ext.get("cx")) if ext is not None else 0
-    ext_cy = emu(ext.get("cy")) if ext is not None else 0
+    off_x = emu(off.get('x')) if off is not None else 0
+    off_y = emu(off.get('y')) if off is not None else 0
+    ext_cx = emu(ext.get('cx')) if ext is not None else 0
+    ext_cy = emu(ext.get('cy')) if ext is not None else 0
 
-    ch_off_x = emu(chOff.get("x")) if chOff is not None else 0
-    ch_off_y = emu(chOff.get("y")) if chOff is not None else 0
-    ch_ext_cx = emu(chExt.get("cx")) if chExt is not None else 1
-    ch_ext_cy = emu(chExt.get("cy")) if chExt is not None else 1
+    ch_off_x = emu(chOff.get('x')) if chOff is not None else 0
+    ch_off_y = emu(chOff.get('y')) if chOff is not None else 0
+    ch_ext_cx = emu(chExt.get('cx')) if chExt is not None else 1
+    ch_ext_cy = emu(chExt.get('cy')) if chExt is not None else 1
 
     scale_x = float(ext_cx) / float(ch_ext_cx) if ch_ext_cx != 0 else 1.0
     scale_y = float(ext_cy) / float(ch_ext_cy) if ch_ext_cy != 0 else 1.0
 
     return {
-        "off_x": off_x, "off_y": off_y,
-        "ext_cx": ext_cx, "ext_cy": ext_cy,
-        "ch_off_x": ch_off_x, "ch_off_y": ch_off_y,
-        "ch_ext_cx": ch_ext_cx, "ch_ext_cy": ch_ext_cy,
-        "flipH": flipH, "flipV": flipV,
-        "rot_rad": rot_rad,
-        "scale_x": scale_x, "scale_y": scale_y,
+        'off_x': off_x,
+        'off_y': off_y,
+        'ext_cx': ext_cx,
+        'ext_cy': ext_cy,
+        'ch_off_x': ch_off_x,
+        'ch_off_y': ch_off_y,
+        'ch_ext_cx': ch_ext_cx,
+        'ch_ext_cy': ch_ext_cy,
+        'flipH': flipH,
+        'flipV': flipV,
+        'rot_rad': rot_rad,
+        'scale_x': scale_x,
+        'scale_y': scale_y,
     }
 
 
 def identity_xfrm():
     """Возвращает "единичную" трансформацию (нет смещения, поворота, флипа, масштаб = 1)."""
     return {
-        "off_x": 0, "off_y": 0,
-        "ext_cx": 0, "ext_cy": 0,
-        "ch_off_x": 0, "ch_off_y": 0,
-        "ch_ext_cx": 1, "ch_ext_cy": 1,
-        "flipH": False, "flipV": False,
-        "rot_rad": 0.0,
-        "scale_x": 1.0, "scale_y": 1.0,
+        'off_x': 0,
+        'off_y': 0,
+        'ext_cx': 0,
+        'ext_cy': 0,
+        'ch_off_x': 0,
+        'ch_off_y': 0,
+        'ch_ext_cx': 1,
+        'ch_ext_cy': 1,
+        'flipH': False,
+        'flipV': False,
+        'rot_rad': 0.0,
+        'scale_x': 1.0,
+        'scale_y': 1.0,
     }
 
 
@@ -165,33 +175,39 @@ def combine_xfrm(parent, child):
     Комбинирует (умножает) трансформации parent (группы) и child (фигуры).
     Итог: масштаб, поворот, flip, смещение.
     """
-    scale_x = parent["scale_x"] * child["scale_x"]
-    scale_y = parent["scale_y"] * child["scale_y"]
-    rot_rad = parent["rot_rad"] + child["rot_rad"]
-    flipH = parent["flipH"] ^ child["flipH"]  # XOR
-    flipV = parent["flipV"] ^ child["flipV"]
+    scale_x = parent['scale_x'] * child['scale_x']
+    scale_y = parent['scale_y'] * child['scale_y']
+    rot_rad = parent['rot_rad'] + child['rot_rad']
+    flipH = parent['flipH'] ^ child['flipH']  # XOR
+    flipV = parent['flipV'] ^ child['flipV']
 
     # Применяем parent-трансформацию к child.off:
     px, py = transform_point(
-        child["off_x"], child["off_y"],
-        parent["scale_x"], parent["scale_y"],
-        parent["rot_rad"],
-        parent["flipH"], parent["flipV"]
+        child['off_x'],
+        child['off_y'],
+        parent['scale_x'],
+        parent['scale_y'],
+        parent['rot_rad'],
+        parent['flipH'],
+        parent['flipV'],
     )
-    off_x = parent["off_x"] + px
-    off_y = parent["off_y"] + py
+    off_x = parent['off_x'] + px
+    off_y = parent['off_y'] + py
 
     return {
-        "off_x": off_x,
-        "off_y": off_y,
-        "scale_x": scale_x,
-        "scale_y": scale_y,
-        "rot_rad": rot_rad,
-        "flipH": flipH,
-        "flipV": flipV,
-        "ext_cx": 0, "ext_cy": 0,
-        "ch_off_x": 0, "ch_off_y": 0,
-        "ch_ext_cx": 1, "ch_ext_cy": 1,
+        'off_x': off_x,
+        'off_y': off_y,
+        'scale_x': scale_x,
+        'scale_y': scale_y,
+        'rot_rad': rot_rad,
+        'flipH': flipH,
+        'flipV': flipV,
+        'ext_cx': 0,
+        'ext_cy': 0,
+        'ch_off_x': 0,
+        'ch_off_y': 0,
+        'ch_ext_cx': 1,
+        'ch_ext_cy': 1,
     }
 
 
@@ -207,8 +223,8 @@ def transform_point(x, y, scale_x, scale_y, rot_rad, flipH, flipV):
     y *= scale_y
     cosA = math.cos(rot_rad)
     sinA = math.sin(rot_rad)
-    rx = x*cosA - y*sinA
-    ry = x*sinA + y*cosA
+    rx = x * cosA - y * sinA
+    ry = x * sinA + y * cosA
     return rx, ry
 
 
@@ -218,12 +234,12 @@ def copy_shape_with_transform(slide, src_shape, xfrm):
     """
     base_w = src_shape.width
     base_h = src_shape.height
-    new_w = int(round(base_w * xfrm["scale_x"]))
-    new_h = int(round(base_h * xfrm["scale_y"]))
+    new_w = int(round(base_w * xfrm['scale_x']))
+    new_h = int(round(base_h * xfrm['scale_y']))
 
-    new_left = int(round(xfrm["off_x"]))
-    new_top = int(round(xfrm["off_y"]))
-    new_rotation_degs = math.degrees(xfrm["rot_rad"])
+    new_left = int(round(xfrm['off_x']))
+    new_top = int(round(xfrm['off_y']))
+    new_rotation_degs = math.degrees(xfrm['rot_rad'])
 
     stype = src_shape.shape_type
 
@@ -330,28 +346,27 @@ def copy_raw_xml_shape(slide, src_shape, new_left, new_top, new_w, new_h, rot_de
     """
     cloned = deepcopy(src_shape._element)
     nsmap = cloned.nsmap
-    xfrm = cloned.find(".//a:xfrm", nsmap)
+    xfrm = cloned.find('.//a:xfrm', nsmap)
     if xfrm is not None:
-        off = xfrm.find("a:off", nsmap)
-        ext = xfrm.find("a:ext", nsmap)
+        off = xfrm.find('a:off', nsmap)
+        ext = xfrm.find('a:ext', nsmap)
         if off is not None:
-            off.set("x", str(new_left))
-            off.set("y", str(new_top))
+            off.set('x', str(new_left))
+            off.set('y', str(new_top))
         if ext is not None:
-            ext.set("cx", str(new_w))
-            ext.set("cy", str(new_h))
+            ext.set('cx', str(new_w))
+            ext.set('cy', str(new_h))
 
         # rot_degs -> rot_attr в 1/60000 градуса
         rot_attr = int(round(rot_degs * 60000))
-        xfrm.set("rot", str(rot_attr))
+        xfrm.set('rot', str(rot_attr))
 
     slide.shapes._spTree.append(cloned)
-
 
 
 # ------------------------
 # ПРИМЕР ИСПОЛЬЗОВАНИЯ
 # ------------------------
-pptx_file = "../test_data/test_dit.pptx"
+pptx_file = '../test_data/test_dit.pptx'
 prs = flatten_presentation(pptx_file)
-prs.save("flattened_no_groups.pptx")
+prs.save('flattened_no_groups.pptx')
