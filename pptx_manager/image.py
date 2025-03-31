@@ -30,7 +30,25 @@ class ImageManager:
     def get_image_json(self, slide_id: int):
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
 
-    def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes):
+    def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes) -> str:
+        """
+        Заменяет изображение в указанной фигуре на слайде.
+
+        Удаляет старое изображение и добавляет новое изображение с сохранением размеров и позиции.
+
+        -   Если `shape_id` равен None, замена применяется ко всем фигурам на указанном слайде.
+        -   Новое изображение добавляется с теми же размерами и позицией, что и старое.
+        -   Старое изображение удаляется из презентации.
+
+        Args:
+            slide_id (int): ID слайда, содержащего фигуру для замены изображения.
+            shape_id (int | None): ID фигуры для замены изображения. Если None, заменяет изображения во всех фигурах на слайде.
+            new_picture (bytes): Новое изображение в виде байтового массива.
+
+        Returns:
+            str: Сообщение о выполненных изменениях, включая ID слайда и фигуры.
+        """
+        changes = []
         for shape in self._get_frame(slide_id, shape_id):
             slide = get_slide_from_shape(shape.shape_manager)
 
@@ -47,12 +65,48 @@ class ImageManager:
             shape.shape_manager = new_shape
             shape.blob = new_picture
 
-    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateImageFrameOpts | dict):
+            changes.append(f'Фигура {shape.shape_id}')
+
+        if not changes:
+            return f'На слайде {slide_id} не найдено фигур для замены изображения.'
+        return f'На слайде {slide_id} заменены изображения в следующих фигурах: {", ".join(changes)}.'
+
+    def update_image_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateImageFrameOpts | dict) -> str:
+        """
+        Обновляет свойства рамки изображения на определенном слайде.
+
+        Изменяет различные атрибуты рамки изображения, включая ширину, высоту, позицию (left, top).
+
+        -   Обновляются только атрибуты, указанные в `opts`.
+        -   Если `opts` является словарем, он будет преобразован в `UpdateImageFrameOpts`.
+        -   Каждое обновление атрибута обрабатывается отдельным внутренним методом.
+        -   Все атрибуты в `UpdateImageFrameOpts` являются необязательными и по умолчанию равны None.
+
+        Args:
+            slide_id (int): ID слайда, содержащего рамку изображения для обновления.
+            shape_id (int | None): ID фигуры для обновления. Если None, обновляет все фигуры на слайде.
+            opts (UpdateImageFrameOpts | dict): Объект, содержащий параметры для обновления рамки изображения.
+                -   width (int | None, optional): Новая ширина рамки изображения.
+                -   height (int | None, optional): Новая высота рамки изображения.
+                -   left (int | None, optional): Новая позиция рамки изображения по оси X.
+                -   top (int | None, optional): Новая позиция рамки изображения по оси Y.
+
+        Returns:
+            str: Сообщение о выполненных изменениях, включая ID слайда, фигур, и измененных параметрах.
+        """
         logger.debug(f'invokes function with parameters: {slide_id}, {shape_id}, {opts}')
 
         if isinstance(opts, dict):
             opts = UpdateImageFrameOpts(**opts)
 
+        updates = {
+            attr: getattr(opts, attr) for attr in ['width', 'height', 'left', 'top'] if getattr(opts, attr) is not None
+        }
+
+        if not updates:
+            return 'WARNING: Не переданы параметры для обновления.'
+
+        changed_shapes = []
         for shape in self._get_frame(slide_id, shape_id):
             if opts.width is not None:
                 shape.shape_manager.width = opts.width
@@ -65,6 +119,14 @@ class ImageManager:
 
             if opts.top is not None:
                 shape.shape_manager.top = opts.top
+
+            changed_shapes.append(f'Фигура {shape.shape_id}')
+
+        if not changed_shapes:
+            return f'На слайде {slide_id} не найдено фигур для обновления.'
+
+        params_str = ', '.join(f'{attr}={value}' for attr, value in updates.items())
+        return f'На слайде {slide_id} обновлены параметры [{params_str}] для фигур: {", ".join(changed_shapes)}'
 
     def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[ImageFrameShape]:
         frames = self.image_frame_shapes[slide_id]
