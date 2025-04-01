@@ -1,16 +1,28 @@
 from pptx.shapes.base import BaseShape
 from pptx.slide import Slide
+from pptx.util import Pt, Inches, Emu
 
 
 def get_all_methods(cls):
     return [method for method in dir(cls) if not method.startswith('__')]
 
+def px_to_emu(px: int) -> int:
+    dpi = 96
+    inches = px / dpi
+    return Inches(inches).emu
+
+
+def emu_to_px(emu: int, dpi: int = 96) -> int:
+    inches = Emu(emu).inches
+    return round(inches * dpi)
 
 def hex_to_rgb(hex: str) -> tuple[int, ...]:
     hex_code = hex.lstrip('#')
 
     return tuple(int(hex_code[i : i + 2], 16) for i in (0, 2, 4))
 
+def pt_to_px(pt):
+    return pt * (96 / 72)
 
 def get_slide_from_shape(shape: BaseShape) -> Slide:
     for i in range(100):
