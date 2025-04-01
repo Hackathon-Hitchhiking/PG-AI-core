@@ -1,7 +1,8 @@
 import os
 
 from aiogram.fsm.context import FSMContext
-from config import DOWNLOADS_DIR, TEMPLATES_DIR
+
+from tg_bot.config import DOWNLOADS_DIR, TEMPLATES_DIR
 
 
 class UserDataManager:

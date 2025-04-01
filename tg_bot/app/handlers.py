@@ -10,7 +10,7 @@ from loguru import logger
 
 from pptx_manager.main import PPTXManager
 from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
-from tests.test_agno import head_agent, image_agent, open_sync_client, slide_agent, text_agent
+from tests.agno_manager import head_agent, image_agent, open_sync_client, slide_agent, text_agent
 from tg_bot.config import DOWNLOADS_DIR, TEMPLATES_DIR
 
 from .keyboards import get_main_keyboard, get_template_keyboard

@@ -3,9 +3,9 @@ import os
 
 import httpx
 
-from agno.agent import Agent
-from agno.models.openai import OpenAIChat
-from agno.team import Team
+from agno_manager.agent import Agent
+from agno_manager.models.openai import OpenAIChat
+from agno_manager.team import Team
 from dotenv import load_dotenv
 from openai import AsyncOpenAI, OpenAI
 
