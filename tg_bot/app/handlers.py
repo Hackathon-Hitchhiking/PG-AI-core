@@ -4,7 +4,10 @@ from aiogram import Bot, F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import FSInputFile
 
+from pptx_manager.main import PPTXManager
+from tests.test_agno import head_agent, image_agent, slide_agent, text_agent
 from tg_bot.config import DOWNLOADS_DIR, TEMPLATES_DIR
 
 from .keyboards import get_main_keyboard, get_template_keyboard
@@ -109,6 +112,8 @@ async def handle_presentation_document(message: types.Message, state: FSMContext
     # Скачиваем файл
     await bot.download_file(file.file_path, file_path)
 
+    await state.set_data({'file_path': file_path})
+
     await message.answer(
         f'Файл {message.document.file_name} успешно загружен! Теперь опишите, что вы хотели бы изменить в презентации.'
     )
@@ -116,9 +121,30 @@ async def handle_presentation_document(message: types.Message, state: FSMContext
 
 
 @router.message(TemplateStates.waiting_for_query, F.text)
-async def handle_user_query(message: types.Message, state: FSMContext):
+async def handle_user_query(message: types.Message, state: FSMContext, bot: Bot):
     # Сохраняем запрос пользователя
     await UserDataManager.save_user_query(message.from_user.id, message.text, state)
+
+    data = await state.get_data()
+
+    file_path = data['file_path']
+
+    pr = PPTXManager(file_path)
+
+    text_agent.instructions[-1] = (f'структура текстовых элементов: {pr.get_all_text_frame_json()}',)
+    image_agent.instructions[-1] = (f'структура картинок в презентации: {pr.get_all_image_json()}',)
+    slide_agent.instructions[-1] = f'кол-во слайдов: {pr.get_slide_count()}'
+
+    text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape]
+    slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]
+
+    head_agent.run(message.text)
+
+    pr.save(file_path)
+
+    document = FSInputFile(file_path)
+
+    await message.reply_document(document, caption='Ваша призентаций')
 
     await message.answer(
         'Ваш запрос принят! Мы обрабатываем вашу презентацию. Вы можете отправить дополнительные комментарии или инструкции.'

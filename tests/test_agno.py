@@ -1,4 +1,3 @@
-import base64
 import getpass
 import os
 
@@ -8,11 +7,7 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.team import Team
 from dotenv import load_dotenv
-from loguru import logger
 from openai import AsyncOpenAI, OpenAI
-
-from pptx_manager.main import PPTXManager
-from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
 
 
 load_dotenv()
@@ -40,12 +35,12 @@ open_sync_client = OpenAI(
     http_client=http_sync_client,
 )
 
-test_pres_path = os.environ.get('TEST_PRES_PATH')
-pr = PPTXManager(test_pres_path)
-
-text_json = pr.get_all_text_frame_json()
-
-pr_json = pr.get_all_image_json()
+# test_pres_path = os.environ.get('TEST_PRES_PATH')
+# pr = PPTXManager(test_pres_path)
+#
+# text_json = pr.get_all_text_frame_json()
+#
+# pr_json = pr.get_all_image_json()
 
 model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
 
@@ -61,9 +56,9 @@ text_agent = Agent(
         'После выполнения операции подтверждайте изменения и предоставляйте отчет о проделанной работе.',
         'Не изменяйте макет слайда или структуру презентации без явного запроса.',
         'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
-        f'структура текстовых элементов: {text_json}',
+        'структура текстовых элементов: ',
     ],
-    tools=[pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape],
+    tools=[],
     model=model,
     show_tool_calls=True,
     markdown=True,
@@ -76,55 +71,55 @@ slide_agent = Agent(
     instructions=[
         'Вы — эксперт по управлению количеством слайдов в PowerPoint.',
         'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
-        f'кол-во слайдов: {pr.get_slide_count()}',
+        'кол-во слайдов: ',
     ],
-    tools=[pr.add_slide_at_position, pr.swap_slides],
+    tools=[],
     model=model,
     show_tool_calls=True,
     debug_mode=True,
 )
 
 
-def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
-    """
-    Генерирует изображение с помощью DALL-E 2 на основе предоставленного запроса и размещает его на указанном слайде.
-
-    Args:
-        prompt (str): Текстовый запрос для генерации изображения.
-        slide_id (int): Идентификатор слайда, на котором будет размещено сгенерированное изображение.
-        opts (ImageFrameOpts): Параметры конфигурации для позиционирования и изменения размера сгенерированного изображения.
-            - left (float): Расстояние от левого края слайда.
-            - top (float): Расстояние от верхнего края слайда.
-            - width (float): Ширина изображения.
-            - height (float): Высота изображения.
-
-    Returns:
-        str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
-    """
-    logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
-
-    response = open_sync_client.images.generate(
-        model='dall-e-2',
-        prompt=prompt,
-        n=1,
-        size='512x512',
-        response_format='b64_json',
-    )
-
-    b64_data = response.data[0].b64_json
-
-    image_bytes = base64.b64decode(b64_data)
-
-    return pr.create_image_shape(
-        slide_id,
-        CreateImageFrameOpts(
-            left=opts.left,
-            top=opts.top,
-            width=opts.width,
-            height=opts.height,
-            image=image_bytes,
-        ),
-    )
+# def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
+#     """
+#     Генерирует изображение с помощью DALL-E 2 на основе предоставленного запроса и размещает его на указанном слайде.
+#
+#     Args:
+#         prompt (str): Текстовый запрос для генерации изображения.
+#         slide_id (int): Идентификатор слайда, на котором будет размещено сгенерированное изображение.
+#         opts (ImageFrameOpts): Параметры конфигурации для позиционирования и изменения размера сгенерированного изображения.
+#             - left (float): Расстояние от левого края слайда.
+#             - top (float): Расстояние от верхнего края слайда.
+#             - width (float): Ширина изображения.
+#             - height (float): Высота изображения.
+#
+#     Returns:
+#         str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
+#     """
+#     logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
+#
+#     response = open_sync_client.images.generate(
+#         model='dall-e-2',
+#         prompt=prompt,
+#         n=1,
+#         size='512x512',
+#         response_format='b64_json',
+#     )
+#
+#     b64_data = response.data[0].b64_json
+#
+#     image_bytes = base64.b64decode(b64_data)
+#
+#     return pr.create_image_shape(
+#         slide_id,
+#         CreateImageFrameOpts(
+#             left=opts.left,
+#             top=opts.top,
+#             width=opts.width,
+#             height=opts.height,
+#             image=image_bytes,
+#         ),
+#     )
 
 
 image_agent = Agent(
@@ -146,9 +141,9 @@ image_agent = Agent(
         '   - Сравнение хэша изображения',
         '   - Проверка метаданных',
         '   - Контроль слоев',
-        f'структура картинок в презентации: {pr_json}',
+        'структура картинок в презентации: ',
     ],
-    tools=[create_image],
+    tools=[],
     model=model,
     show_tool_calls=True,
     debug_mode=True,
@@ -188,22 +183,22 @@ head_agent = Team(
 # response = head_agent.run(f'presentation:{pr_json}\n\nОпиши содержимое презентации.')
 
 # Infinite dialogue loop
-num = 1
-while True:
-    user_input = input("Введите запрос для изменения презентации (или 'exit' для выхода): ")
-    if user_input.lower() == 'exit':
-        print('Диалог завершен.')
-        break
-
-    response = head_agent.run(f'{user_input}')
-
-    text_agent.instructions[-1] = (f'структура текстовых элементов: {pr.get_all_text_frame_json()}',)
-    image_agent.instructions[-1] = (f'структура картинок в презентации: {pr.get_all_image_json()}',)
-
-    print(response.content)
-    logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
-    logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
-    # Save the updated presentation
-    pr.save(f'test_{num}.pptx')
-    logger.debug(f'Презентация сохранена как test_{num}.pptx')
-    num += 1
+# num = 1
+# while True:
+#     user_input = input("Введите запрос для изменения презентации (или 'exit' для выхода): ")
+#     if user_input.lower() == 'exit':
+#         print('Диалог завершен.')
+#         break
+#
+#     response = head_agent.run(f'{user_input}')
+#
+#     text_agent.instructions[-1] = (f'структура текстовых элементов: {pr.get_all_text_frame_json()}',)
+#     image_agent.instructions[-1] = (f'структура картинок в презентации: {pr.get_all_image_json()}',)
+#
+#     print(response.content)
+#     logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
+#     logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
+#     # Save the updated presentation
+#     pr.save(f'test_{num}.pptx')
+#     logger.debug(f'Презентация сохранена как test_{num}.pptx')
+#     num += 1
