@@ -38,7 +38,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit test.pptx / coverage reports
 htmlcov/
 .tox/
 .nox/
@@ -177,4 +177,5 @@ cython_debug/
 
 test_sources/extracted_images
 test_sources/output_presentation.pptx
+test_agent.py
 

@@ -41,6 +41,10 @@ dependencies = [
     "ruff>=0.11.0",
     "webcolors>=24.11.1",
     "langchain-community>=0.3.20",
+    "openai-agents>=0.0.7",
+    "pydantic-ai>=0.0.43",
+    "loguru>=0.7.3",
+    "agno>=1.2.6",
 ]
 name = "pg-ai-core"
 version = "0.1.0"
