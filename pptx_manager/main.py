@@ -89,10 +89,10 @@ class PPTXManager(
         Args:
             slide_id (int): ID слайда, на котором будет создана текстовая фигура.
             opts (CreateTextFrameOpts): Объект, содержащий параметры для создания текстовой фигуры.
-                -   width (int | None, optional): Ширина рамки текста.
-                -   height (int | None, optional): Высота рамки текста.
-                -   left (int | None, optional): Позиция рамки текста по оси X.
-                -   top (int | None, optional): Позиция рамки текста по оси Y.
+                -   width (int): Ширина рамки текста.
+                -   height (int): Высота рамки текста.
+                -   left (int): Позиция рамки текста по оси X.
+                -   top (int): Позиция рамки текста по оси Y.
                 -   text (str | None, optional): Текстовое содержимое для фигуры.
                 -   color (list[int] | None, optional): Цвет текста в формате RGB кортежа.
                 -   size (int | None, optional): Размер шрифта для текста.
@@ -195,10 +195,10 @@ class PPTXManager(
         Args:
             slide_id (int): ID слайда, на котором будет создана фигура с изображением.
             opts (CreateImageFrameOpts): Объект, содержащий параметры для создания фигуры с изображением.
-                -   width (int | None, optional): Ширина рамки изображения.
-                -   height (int | None, optional): Высота рамки изображения.
-                -   left (int | None, optional): Позиция рамки изображения по оси X.
-                -   top (int | None, optional): Позиция рамки изображения по оси Y.
+                -   width (int): Ширина рамки изображения.
+                -   height (int): Высота рамки изображения.
+                -   left (int): Позиция рамки изображения по оси X.
+                -   top (int): Позиция рамки изображения по оси Y.
                 -   image (bytes): Байты изображения для размещения в фигуре.
 
         Returns:

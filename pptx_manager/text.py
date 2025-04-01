@@ -122,9 +122,7 @@ class TextFrameManager:
         if isinstance(opts, dict):
             opts = TextFrameOpts(**opts)
 
-        updates = {
-            attr: getattr(opts, attr) for attr in ['width', 'height', 'left', 'top'] if getattr(opts, attr) is not None
-        }
+        updates = {attr: getattr(opts, attr) for attr in opts.model_dump().keys() if getattr(opts, attr) is not None}
         if not updates:
             return 'WARNING: Не переданы параметры для обновления.'
 
