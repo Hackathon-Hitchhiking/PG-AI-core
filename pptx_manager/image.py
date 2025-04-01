@@ -31,6 +31,14 @@ class ImageManager:
     def get_image_json(self, slide_id: int) -> list[dict]:
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
 
+    def get_all_image_json(self):
+        image_frame_json = {}
+
+        for slide_id, shapes in self.image_frame_shapes.items():
+            image_frame_json[slide_id] = [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in shapes]
+
+        return image_frame_json
+
     def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes) -> str:
         """
         Заменяет изображение в указанной фигуре на слайде.

@@ -45,7 +45,7 @@ pr = PPTXManager(test_pres_path)
 
 text_json = pr.get_all_text_frame_json()
 
-# pr_json = pr.get_all_text_frame_json()
+pr_json = pr.get_all_image_json()
 
 model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
 
@@ -146,6 +146,7 @@ image_agent = Agent(
         '   - Сравнение хэша изображения',
         '   - Проверка метаданных',
         '   - Контроль слоев',
+        f'структура картинок в презентации: {pr_json}',
     ],
     tools=[create_image],
     model=model,
@@ -195,6 +196,10 @@ while True:
         break
 
     response = head_agent.run(f'{user_input}')
+
+    text_agent.instructions[-1] = (f'структура текстовых элементов: {pr.get_all_text_frame_json()}',)
+    image_agent.instructions[-1] = (f'структура картинок в презентации: {pr.get_all_image_json()}',)
+
     print(response.content)
     logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
     logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
