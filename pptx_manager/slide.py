@@ -9,6 +9,8 @@ from pptx.util import Pt
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
 from pptx_manager.utils import CustomList
 
+from pptx_manager.utils import pt_to_px
+
 
 class SlideManager:
     def __init__(self) -> None:
@@ -93,8 +95,14 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-        # TODO change to Pixels
-        shape = shape_creator(Pt(opts.left), Pt(opts.top), opts.width, opts.height)
+        print(opts.left)
+        print('asdfasdf')
+        shape = shape_creator(
+            pt_to_px(opts.left),
+            pt_to_px(opts.top),
+            pt_to_px(opts.width),
+            pt_to_px(opts.height)
+        )
 
         shape_id = self.increase_shape_count(slide_id, 1)
 
@@ -105,7 +113,11 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes.add_picture(
-            io.BytesIO(image), Pt(opts.left), Pt(opts.top), Pt(opts.width), Pt(opts.height)
+            io.BytesIO(image),
+            pt_to_px(opts.left),
+            pt_to_px(opts.top),
+            pt_to_px(opts.width),
+            pt_to_px(opts.height)
         )
 
         shape_id = self.increase_shape_count(slide_id, 1)
@@ -201,4 +213,4 @@ class SlideManager:
 
 if __name__ == '__main__':
     sm = SlideManager()
-    sm.test('../test_data/test_dit.pptx')
+    sm.test('test_data/test_dit.pptx')

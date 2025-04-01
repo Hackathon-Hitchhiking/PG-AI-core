@@ -11,6 +11,8 @@ def hex_to_rgb(hex: str) -> tuple[int, ...]:
 
     return tuple(int(hex_code[i : i + 2], 16) for i in (0, 2, 4))
 
+def pt_to_px(pt):
+    return pt * (96 / 72)
 
 def get_slide_from_shape(shape: BaseShape) -> Slide:
     for i in range(100):

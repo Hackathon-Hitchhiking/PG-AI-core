@@ -18,11 +18,11 @@ from pptx.text.text import Font
 from pptx.util import Pt
 
 from pptx_manager.models import TextFrameOpts, TextFrameShape
-from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
+from pptx_manager.utils import get_slide_from_shape, hex_to_rgb, pt_to_px
 
 
 class TextFrameManager:
-    def __init__(self) -> None:
+    def __init__(self):
         self.pres = None
 
         self.text_frame_shapes: defaultdict[int, list[TextFrameShape]] = defaultdict(
@@ -39,7 +39,10 @@ class TextFrameManager:
         text_frame_json = {}
 
         for slide_id, shapes in self.text_frame_shapes.items():
-            text_frame_json[slide_id] = [shape.model_dump(exclude={'text_manager', 'font_manager'}) for shape in shapes]
+            shapes_json = []
+            for shape in shapes:
+                shapes_json.append(shape.model_dump(exclude={'text_manager', 'font_manager'}))
+            text_frame_json[slide_id] = shapes_json
 
         return text_frame_json
 
@@ -98,67 +101,87 @@ class TextFrameManager:
 
         return font_size
 
-    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: TextFrameOpts | dict) -> str:
-        """Обновляет свойства текстовой области фигуры на определенном слайде.
+    def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: TextFrameOpts | dict):
+        """Updates the properties of a text frame shape in a specific slide.
 
-        Изменяет различные текстовые атрибуты, включая содержимое, цвет, размер и стиль (жирный, курсив, подчеркивание).
+        Modifies various text attributes, including content, color, size, and style (bold, italic, underline).
 
         Args:
-            slide_id (int): ID слайда, содержащего текстовую область для обновления.
-            shape_id (int | None): ID фигуры для обновления. Если None, обновляет все фигуры на слайде.
-            opts (dict): Объект, содержащий параметры для обновления текстовой области.
-                -   text (str | None, optional): Новое текстовое содержимое для фигуры.
-                -   color (list[int] | None, optional): Новый цвет текста в формате RGB кортежа.
-                -   size (int | None, optional): Новый размер шрифта для текста.
-                -   bold (bool | None, optional): Установить текст жирным или нет.
-                -   italic (bool | None, optional): Установить текст курсивом или нет.
-                -   underline (bool | None, optional): Установить подчеркивание текста или нет.
+            slide_id (int): The ID of the slide containing the text frame shape to be updated.
+            shape_id (int | None): The ID of the shape to be updated. If None, updates all shapes on the slide.
+            opts (dict): An object containing the options for updating the text frame.
+                -   text (str | None, optional): The new text content for the shape.
+                -   color (list[int] | None, optional): The new text color as an RGB tuple.
+                -   size (int | None, optional): The new font size for the text.
+                -   bold (bool | None, optional): Whether to set the text to bold.
+                -   italic (bool | None, optional): Whether to set the text to italic.
+                -   underline (bool | None, optional): Whether to underline the text.
+
+        Notes:
+            -   Only the attributes specified in `opts` will be updated.
+            -   If `opts` is a dictionary, it will be converted to `UpdateTextFrameOpts`.
+            -   Each attribute update is handled by a separate internal method.
+            -   All attributes in `UpdateTextFrameOpts` are optional and default to None.
 
         Returns:
-            str: Сообщение о выполненных изменениях, включая ID слайда, фигур, и измененных параметрах.
+            str: Confirmation of the completion of the task
         """
-        logger.debug(f'функция вызвана с параметрами: {slide_id, shape_id, opts}')
+        logger.debug(f'update_text_frame_shape calls with parametrs: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
             opts = TextFrameOpts(**opts)
 
-        updates = {attr: getattr(opts, attr) for attr in opts.model_dump().keys() if getattr(opts, attr) is not None}
-        if not updates:
-            return 'WARNING: Не переданы параметры для обновления.'
+        if opts.text is not None:
+            self._update_text_text_frame_shape(slide_id, shape_id, opts.text)
 
-        changed_shapes = []
-        for frame in self._get_text_frame(slide_id, shape_id):
-            if opts.text is not None:
-                frame.text_manager.paragraphs[0].runs[0].text = opts.text
-                frame.text = opts.text
+        if opts.color is not None:
+            self._update_color_text_frame_shape(slide_id, shape_id, opts.color)
 
-            if opts.color is not None:
-                frame.font_manager.color.rgb = RGBColor(opts.color[0], opts.color[1], opts.color[2])
-                frame.color = (opts.color[0], opts.color[1], opts.color[2])
+        if opts.italic is not None:
+            self._update_italic_text_frame_shape(slide_id, shape_id, opts.italic)
 
-            if opts.italic is not None:
-                frame.font_manager.italic = opts.italic
-                frame.italic = opts.italic
+        if opts.underline is not None:
+            self._update_underline_text_frame_shape(slide_id, shape_id, opts.underline)
 
-            if opts.underline is not None:
-                frame.font_manager.underline = opts.underline
-                frame.underline = opts.underline
+        if opts.bold is not None:
+            self._update_bold_text_frame_shape(slide_id, shape_id, opts.bold)
 
-            if opts.bold is not None:
-                frame.font_manager.bold = opts.bold
-                frame.bold = opts.bold
+        if opts.size is not None:
+            self._update_size_text_frame_shape(slide_id, shape_id, opts.size)
 
-            if opts.size is not None:
-                frame.font_manager.size = Pt(opts.size)
-                frame.font_size = opts.size
+        return 'Done'
 
-            changed_shapes.append(f'Фигура {frame.shape_id}')
+    def _update_text_text_frame_shape(self, slide_id: int, shape_id: int | None, new_text: str) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.text_manager.paragraphs[0].runs[0].text = new_text
+            frame.text = new_text
 
-        if not changed_shapes:
-            return f'На слайде {slide_id} не найдено фигур для обновления.'
+    def _update_color_text_frame_shape(
+        self, slide_id: int, shape_id: int | None, new_color: tuple[int, int, int]
+    ) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.color.rgb = RGBColor(new_color[0], new_color[1], new_color[2])
+            frame.color = (new_color[0], new_color[1], new_color[2])
 
-        params_str = ', '.join(f'{attr}={value}' for attr, value in updates.items())
-        return f'На слайде {slide_id} обновлены параметры [{params_str}] для фигур: {", ".join(changed_shapes)}'
+    def _update_bold_text_frame_shape(self, slide_id: int, shape_id: int | None, bold: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.bold = bold
+            frame.bold = bold
+
+    def _update_italic_text_frame_shape(self, slide_id: int, shape_id: int | None, italic: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.italic = italic
+            frame.italic = italic
+
+    def _update_underline_text_frame_shape(self, slide_id: int, shape_id: int | None, underline: bool) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.underline = underline
+            frame.underline = underline
+
+    def _update_size_text_frame_shape(self, slide_id: int, shape_id: int | None, new_size: int) -> None:
+        for frame in self._get_frame(slide_id, shape_id):
+            frame.font_manager.size = Pt(new_size)
+            frame.font_size = new_size
 
     def _delete_text_frame_shape(self, slide_id: int, shape_id: int) -> None:
         frames = self.text_frame_shapes[slide_id]
@@ -166,9 +189,9 @@ class TextFrameManager:
             if frame.shape_id == shape_id:
                 del frames[index]
 
-    def _get_text_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
+    def _get_frame(self, slide_id: int, shape_id: int | None) -> Iterator[TextFrameShape]:
         if slide_id < 0:
-            slide_id = sorted(self.text_frame_shapes.keys())[slide_id]
+            slide_id = sorted(list(self.text_frame_shapes.keys()))[slide_id]
         frames = self.text_frame_shapes[slide_id]
         for frame in frames:
             if shape_id is not None and shape_id != frame.shape_id:
@@ -188,9 +211,8 @@ class TextFrameManager:
         return copy_font
 
     def _get_text_frame_shape(self, slide_id: int, shape_id: int | None) -> TextFrameShape | None:
-        for frame in self._get_text_frame(slide_id, shape_id):
+        for frame in self._get_frame(slide_id, shape_id):
             return frame
-        return None
 
     def _parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
         if shape.text == '' and shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
@@ -200,9 +222,9 @@ class TextFrameManager:
 
             first_run_font = None
             full_text_lines = []
-            for _p_i, paragraph in enumerate(text_frame.paragraphs):
+            for p_i, paragraph in enumerate(text_frame.paragraphs):
                 paragraph_text = ''
-                for _r_i, run in enumerate(paragraph.runs):
+                for r_i, run in enumerate(paragraph.runs):
                     if first_run_font is None:
                         first_run_font = run.font
                     paragraph_text += run.text
@@ -263,7 +285,7 @@ class TextFrameManager:
 
         return text_frame_shape
 
-    def test(self, source: str | None) -> None:
+    def test(self, source):
         self.pres = Presentation(source)
 
         slide_id = 1
@@ -288,4 +310,4 @@ class TextFrameManager:
 if __name__ == '__main__':
     fm = TextFrameManager()
 
-    fm.test('../test_data/test_dit.pptx')
+    fm.test('test_data/test_dit.pptx')
