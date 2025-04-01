@@ -4,12 +4,14 @@ from loguru import logger
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
-from pptx.util import Pt
+from pptx.util import Pt, Inches, Emu
+from pptx.dml.color import RGBColor
 
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
 from pptx_manager.utils import CustomList
 
-from pptx_manager.utils import pt_to_px
+
+from pptx_manager.utils import pt_to_px, px_to_emu, emu_to_px
 
 
 class SlideManager:
@@ -69,6 +71,83 @@ class SlideManager:
         logger.info(f'Слайды на позициях {slide_id1} и {slide_id2} были обменены местами')
         return 'Success'
 
+    def get_slide_size_px(self) -> tuple[int, int]:
+        """
+        Возвращает размеры слайдов презентации в пикселях.
+
+        Возвращает текущие размеры слайдов в формате (ширина, высота).
+        Все слайды в презентации имеют одинаковые размеры.
+
+        Returns:
+            tuple[int, int]: Кортеж с шириной и высотой в пикселях
+
+        Raises:
+            ValueError: Если презентация не загружена
+        """
+        if not self.pres:
+            raise ValueError("Презентация не загружена. Сначала вызовите load_presentation()")
+
+        width_emu = self.pres.slide_width
+        height_emu = self.pres.slide_height
+
+        return (
+            emu_to_px(width_emu),
+            emu_to_px(height_emu)
+        )
+
+    def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
+        """
+        Устанавливает сплошной цвет фона для указанного слайда.
+        Изменяет заливку фона слайда на указанный RGB-цвет. Если на слайде была применена другая заливка
+        (градиент, изображение и т.д.), она будет заменена на сплошной цвет.
+
+        -   Нумерация слайдов начинается с 1.
+        -   Для работы требуется загруженная презентация.
+        -   Все компоненты цвета должны быть в диапазоне 0-255.
+        -   Цвет применяется ко всему слайду, включая скрытые области макета.
+
+        Args:
+            slide_id (int): Номер целевого слайда (1-based индекс).
+            -   Допустимый диапазон: [1, количество_слайдов]
+        color_rgb (tuple[int, int, int]): Цвет в формате RGB.
+            -   Каждый компонент (R, G, B) должен быть в диапазоне 0-255
+            -   Пример: (255, 0, 0) - красный цвет
+
+        Returns:
+            str: Сообщение о результате в формате:
+                "Цвет фона успешно обновлен"
+
+        Raises:
+            ValueError: В следующих случаях:
+                - Презентация не загружена
+                - Некорректный номер слайда
+                - Недопустимые значения RGB (выход за пределы 0-255)
+
+        Example:
+            manager.set_slide_background_color(1, (34, 139, 34))
+        """
+        if not self.pres:
+            msg = "Презентация не загружена. Сначала используйте метод `load_presentation`."
+            raise ValueError(msg)
+
+        if not all(0 <= c <= 255 for c in color_rgb):
+            raise ValueError("Значения цвета должны быть в диапазоне 0-255")
+
+        slides = self.pres.slides
+        if slide_id < 1 or slide_id > len(slides):
+            raise ValueError(f"Недопустимый номер слайда: {slide_id}")
+
+        slide = slides[slide_id - 1]
+        background = slide.background
+        fill = background.fill
+        fill.solid()
+
+        r, g, b = color_rgb
+        fill.fore_color.rgb = RGBColor(r, g, b)
+
+        logger.info(f"Цвет фона слайда {slide_id} изменен на RGB{color_rgb}")
+        return 'Success'
+
     def get_slide_count(self) -> int:
         if not self.pres:
             msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
@@ -95,8 +174,6 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-        print(opts.left)
-        print('asdfasdf')
         shape = shape_creator(
             pt_to_px(opts.left),
             pt_to_px(opts.top),
@@ -207,6 +284,7 @@ class SlideManager:
         self.load_presentation(source)
         self.add_slide_at_position(1, layout_index=0, title='Inserted Slide 1')
         self.add_slide_at_position(3, layout_index=0, title='Inserted Slide at Position 3')
+        self.set_slide_background_color(1, (255, 255, 0))
         output_path = 'test_slide.pptx'
         self.pres.save(output_path)
 
