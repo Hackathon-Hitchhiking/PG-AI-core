@@ -42,7 +42,7 @@ open_sync_client = OpenAI(
 #
 # pr_json = pr.get_all_image_json()
 
-model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
+model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
 
 text_agent = Agent(
     name='Text Agent',
