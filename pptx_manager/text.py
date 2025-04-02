@@ -42,7 +42,7 @@ class TextFrameManager:
         for slide_id, shapes in self.text_frame_shapes.items():
             shapes_json = []
             for shape in shapes:
-                shapes_json.append(shape.model_dump(exclude={'text_manager', 'font_manager'}))
+                shapes_json.append(shape.model_dump(exclude={'text_manager', 'font_manager', 'shape_manager'}))
             text_frame_json[slide_id] = shapes_json
 
         return text_frame_json

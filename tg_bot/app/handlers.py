@@ -10,7 +10,7 @@ from loguru import logger
 
 from pptx_manager.main import PPTXManager
 from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
-from tests.agno_manager import head_agent, image_agent, open_sync_client, slide_agent, text_agent
+from tests.agno_manager import get_head_agent, open_sync_client
 from tg_bot.config import DOWNLOADS_DIR, TEMPLATES_DIR
 
 from .keyboards import get_main_keyboard, get_template_keyboard
@@ -174,6 +174,8 @@ async def handle_user_query(message: types.Message, state: FSMContext, bot: Bot)
                 image=image_bytes,
             ),
         )
+
+    head_agent, text_agent, slide_agent, image_agent = get_head_agent()
 
     text_agent.instructions[-1] = (f'структура текстовых элементов: {pr.get_all_text_frame_json()}',)
     image_agent.instructions[-1] = (f'структура картинок в презентации: {pr.get_all_image_json()}',)

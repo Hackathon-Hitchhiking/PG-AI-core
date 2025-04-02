@@ -5,7 +5,7 @@ from loguru import logger
 
 from pptx_manager.main import PPTXManager
 from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
-from tests.agno_manager import head_agent, image_agent, open_sync_client, slide_agent, text_agent
+from tests.agno_manager import get_head_agent, open_sync_client
 
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
@@ -70,6 +70,8 @@ while True:
         print('Диалог завершен.')
         break
 
+    head_agent, text_agent, slide_agent, image_agent = get_head_agent()
+
     text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'
     image_agent.instructions[-1] = f'структура картинок в презентации: {pr.get_all_image_json()}'
     slide_agent.instructions[-1] = f'кол-во слайдов: {pr.get_slide_count()}'
@@ -89,6 +91,9 @@ while True:
     image_agent.tools = [create_image]
 
     response = head_agent.run(f'{user_input}')
+
+    head_agent.memory = None
+
     print(response.content)
     logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
     logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')
