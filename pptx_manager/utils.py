@@ -1,6 +1,6 @@
 from pptx.shapes.base import BaseShape
 from pptx.slide import Slide
-from pptx.util import Emu, Inches
+from pptx.util import Emu, Inches, Pt
 
 
 def get_all_methods(cls):
@@ -24,12 +24,12 @@ def hex_to_rgb(hex: str) -> tuple[int, ...]:
     return tuple(int(hex_code[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def pt_to_px(pt):
-    return pt * (96 / 72)
+def pt_to_px(pt) -> float:
+    return Pt(pt) * (4 / 3)
 
 
-def px_to_pt(px):
-    return px * 0.75
+def px_to_pt(px) -> Pt:
+    return Pt(px * 0.75)
 
 
 def get_slide_from_shape(shape: BaseShape) -> Slide:

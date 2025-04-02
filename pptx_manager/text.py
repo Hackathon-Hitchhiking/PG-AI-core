@@ -17,6 +17,7 @@ from pptx.slide import Slide
 from pptx.text.text import Font
 from pptx.util import Pt
 
+from pptx_manager import utils
 from pptx_manager.models import TextFrameOpts, TextFrameShape
 from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
@@ -273,6 +274,8 @@ class TextFrameManager:
             italic=italic,
             underline=underline,
             color=font_color,
+            left=utils.emu_to_px(shape.left),
+            top=utils.emu_to_px(shape.top),
             text_manager=text_frame,
             font_manager=text_frame_font,
             shape_manager=shape,

@@ -5,11 +5,10 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
-from pptx.util import Pt
 
 from pptx_manager import utils
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
-from pptx_manager.utils import CustomList, emu_to_px, pt_to_px
+from pptx_manager.utils import CustomList, emu_to_px, px_to_emu
 
 
 class SlideManager:
@@ -69,7 +68,7 @@ class SlideManager:
         logger.info(f'Слайды на позициях {slide_id1} и {slide_id2} были обменены местами')
         return 'Success'
 
-    def get_slide_size_px(self) -> tuple[int, int]:
+    def get_slide_size_px(self) -> tuple[float, float]:
         """
         Возвращает размеры слайдов презентации в пикселях.
 
@@ -85,10 +84,7 @@ class SlideManager:
         if not self.pres:
             raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
 
-        width_emu = self.pres.slide_width
-        height_emu = self.pres.slide_height
-
-        return (emu_to_px(width_emu), emu_to_px(height_emu))
+        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_width)
 
     def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
         """
@@ -165,10 +161,10 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
-        left = Pt(utils.px_to_pt(opts.left))
-        top = Pt(utils.px_to_pt(opts.top))
-        width = Pt(utils.px_to_pt(opts.width))
-        height = Pt(utils.px_to_pt(opts.height))
+        left = utils.px_to_emu(opts.left)
+        top = utils.px_to_emu(opts.top)
+        width = utils.px_to_emu(opts.width)
+        height = utils.px_to_emu(opts.height)
         logger.debug(
             f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, left={left}, top={top}, width={width}, height={height}'
         )
@@ -186,7 +182,7 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes.add_picture(
-            io.BytesIO(image), pt_to_px(opts.left), pt_to_px(opts.top), pt_to_px(opts.width), pt_to_px(opts.height)
+            io.BytesIO(image), px_to_emu(opts.left), px_to_emu(opts.top), px_to_emu(opts.width), px_to_emu(opts.height)
         )
 
         shape_id = self.increase_shape_count(slide_id, 1)
@@ -283,4 +279,4 @@ class SlideManager:
 
 if __name__ == '__main__':
     sm = SlideManager()
-    sm.test('test_data/test_dit.pptx')
+    sm.test('../test_data/test_dit.pptx')
