@@ -5,7 +5,9 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
+from pptx.util import Pt
 
+from pptx_manager import utils
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
 from pptx_manager.utils import CustomList, emu_to_px, pt_to_px
 
@@ -163,11 +165,17 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
-        logger.debug(f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}')
+        left = Pt(utils.px_to_pt(opts.left))
+        top = Pt(utils.px_to_pt(opts.top))
+        width = Pt(utils.px_to_pt(opts.width))
+        height = Pt(utils.px_to_pt(opts.height))
+        logger.debug(
+            f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, left={left}, top={top}, width={width}, height={height}'
+        )
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-        shape = shape_creator(pt_to_px(opts.left), pt_to_px(opts.top), pt_to_px(opts.width), pt_to_px(opts.height))
+        shape = shape_creator(left, top, width, height)
 
         shape_id = self.increase_shape_count(slide_id, 1)
 

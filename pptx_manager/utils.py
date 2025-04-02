@@ -28,6 +28,10 @@ def pt_to_px(pt):
     return pt * (96 / 72)
 
 
+def px_to_pt(px):
+    return px * 0.75
+
+
 def get_slide_from_shape(shape: BaseShape) -> Slide:
     for i in range(100):
         shape = shape._parent

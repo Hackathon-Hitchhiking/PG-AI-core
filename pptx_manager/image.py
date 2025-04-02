@@ -9,7 +9,9 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.parts.image import Image
 from pptx.shapes.autoshape import Shape
+from pptx.util import Pt
 
+from pptx_manager import utils
 from pptx_manager.models import ImageFrameOpts, ImageFrameShape
 from pptx_manager.utils import get_slide_from_shape
 
@@ -168,10 +170,10 @@ class ImageManager:
 
         image_frame_shape = ImageFrameShape(
             shape_id=shape_id,
-            width=width,
-            height=height,
-            left=shape.left,
-            top=shape.top,
+            width=utils.pt_to_px(Pt(width)),
+            height=utils.pt_to_px(Pt(height)),
+            left=utils.pt_to_px(Pt(shape.left)),
+            top=utils.pt_to_px(Pt(shape.top)),
             blob=image_bytes,
             shape_manager=shape,
         )
