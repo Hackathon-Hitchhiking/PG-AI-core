@@ -77,7 +77,7 @@ slide_agent = Agent(
         'Вы — эксперт по управлению количеством слайдов в PowerPoint.',
         'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
         f'кол-во слайдов: {pr.get_slide_count()}',
-        f'Размер слайдов в пикселях {pr.get_slide_size_px()}'
+        f'Размер слайдов в пикселях {pr.get_slide_size_px()}',
     ],
     tools=[pr.add_slide_at_position, pr.swap_slides, pr.set_slide_background_color],
     model=model,

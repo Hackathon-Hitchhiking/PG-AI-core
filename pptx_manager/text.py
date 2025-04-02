@@ -18,7 +18,7 @@ from pptx.text.text import Font
 from pptx.util import Pt
 
 from pptx_manager.models import TextFrameOpts, TextFrameShape
-from pptx_manager.utils import get_slide_from_shape, hex_to_rgb, pt_to_px
+from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
 
 class TextFrameManager:

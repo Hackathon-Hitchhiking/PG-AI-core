@@ -2,16 +2,12 @@ import io
 
 from loguru import logger
 from pptx import Presentation
+from pptx.dml.color import RGBColor
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
-from pptx.util import Pt, Inches, Emu
-from pptx.dml.color import RGBColor
 
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
-from pptx_manager.utils import CustomList
-
-
-from pptx_manager.utils import pt_to_px, px_to_emu, emu_to_px
+from pptx_manager.utils import CustomList, emu_to_px, pt_to_px
 
 
 class SlideManager:
@@ -41,8 +37,8 @@ class SlideManager:
         -   Производит обмен на уровне внутреннего списка слайдов.
 
         Args:
-            slide_id1 (int): Номер первого слайда для обмена (1-based индекс).
-            slide_id2 (int): Номер второго слайда для обмена (1-based индекс).
+            slide_id1 (int): Номер первого слайда для обмена (Нумерация начинается с единицы).
+            slide_id2 (int): Номер второго слайда для обмена (Нумерация начинается с единицы).
 
         Returns:
             str: 'Success' при успешном выполнении операции.
@@ -85,15 +81,12 @@ class SlideManager:
             ValueError: Если презентация не загружена
         """
         if not self.pres:
-            raise ValueError("Презентация не загружена. Сначала вызовите load_presentation()")
+            raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
 
         width_emu = self.pres.slide_width
         height_emu = self.pres.slide_height
 
-        return (
-            emu_to_px(width_emu),
-            emu_to_px(height_emu)
-        )
+        return (emu_to_px(width_emu), emu_to_px(height_emu))
 
     def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
         """
@@ -107,7 +100,7 @@ class SlideManager:
         -   Цвет применяется ко всему слайду, включая скрытые области макета.
 
         Args:
-            slide_id (int): Номер целевого слайда (1-based индекс).
+            slide_id (int): Номер целевого слайда (Нумерация начинается с единицы).
             -   Допустимый диапазон: [1, количество_слайдов]
         color_rgb (tuple[int, int, int]): Цвет в формате RGB.
             -   Каждый компонент (R, G, B) должен быть в диапазоне 0-255
@@ -127,15 +120,15 @@ class SlideManager:
             manager.set_slide_background_color(1, (34, 139, 34))
         """
         if not self.pres:
-            msg = "Презентация не загружена. Сначала используйте метод `load_presentation`."
+            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
             raise ValueError(msg)
 
         if not all(0 <= c <= 255 for c in color_rgb):
-            raise ValueError("Значения цвета должны быть в диапазоне 0-255")
+            raise ValueError('Значения цвета должны быть в диапазоне 0-255')
 
         slides = self.pres.slides
         if slide_id < 1 or slide_id > len(slides):
-            raise ValueError(f"Недопустимый номер слайда: {slide_id}")
+            raise ValueError(f'Недопустимый номер слайда: {slide_id}')
 
         slide = slides[slide_id - 1]
         background = slide.background
@@ -145,7 +138,7 @@ class SlideManager:
         r, g, b = color_rgb
         fill.fore_color.rgb = RGBColor(r, g, b)
 
-        logger.info(f"Цвет фона слайда {slide_id} изменен на RGB{color_rgb}")
+        logger.info(f'Цвет фона слайда {slide_id} изменен на RGB{color_rgb}')
         return 'Success'
 
     def get_slide_count(self) -> int:
@@ -174,12 +167,7 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-        shape = shape_creator(
-            pt_to_px(opts.left),
-            pt_to_px(opts.top),
-            pt_to_px(opts.width),
-            pt_to_px(opts.height)
-        )
+        shape = shape_creator(pt_to_px(opts.left), pt_to_px(opts.top), pt_to_px(opts.width), pt_to_px(opts.height))
 
         shape_id = self.increase_shape_count(slide_id, 1)
 
@@ -190,11 +178,7 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes.add_picture(
-            io.BytesIO(image),
-            pt_to_px(opts.left),
-            pt_to_px(opts.top),
-            pt_to_px(opts.width),
-            pt_to_px(opts.height)
+            io.BytesIO(image), pt_to_px(opts.left), pt_to_px(opts.top), pt_to_px(opts.width), pt_to_px(opts.height)
         )
 
         shape_id = self.increase_shape_count(slide_id, 1)
@@ -218,13 +202,13 @@ class SlideManager:
         Создает новый слайд и вставляет его в указанную позицию презентации,
         с возможностью установки макета и заголовка.
 
-        -   Позиция указывается в формате 1-based индекса.
+        -   Позиция указывается в формате индекса.
         -   Макет выбирается из доступных макетов презентации.
         -   Заголовок устанавливается только при наличии placeholder'а в макете.
         -   Обновляет внутренние метаданные слайдов.
 
         Args:
-            position (int): Позиция для вставки слайда (1-based).
+            position (int): Позиция для вставки слайда (Нумерация начинается с единицы).
                 -   Допустимый диапазон: [1, количество_слайдов + 1]
             layout_index (int, optional): Индекс используемого макета.
                 -   По умолчанию: 0 (первый доступный макет)
