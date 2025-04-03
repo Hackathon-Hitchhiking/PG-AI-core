@@ -7,7 +7,8 @@ def get_main_keyboard():
     builder.add(InlineKeyboardButton(text='Загрузить шаблон', callback_data='upload_template'))
     builder.add(InlineKeyboardButton(text='Мои шаблоны', callback_data='my_templates'))
     builder.add(InlineKeyboardButton(text='Загрузить презентацию', callback_data='upload_presentation'))
-    builder.add(InlineKeyboardButton(text='Причесать загруженную презентацию'))
+    builder.add(InlineKeyboardButton(text='Причесать загруженную презентацию', callback_data='coming_soon'))
+    builder.adjust(2, 2)
     return builder.as_markup()
 
 
