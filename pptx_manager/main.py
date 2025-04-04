@@ -1,4 +1,11 @@
+import os
+import subprocess
+
+from io import BytesIO
+from tempfile import TemporaryDirectory
+
 from loguru import logger
+from pdf2image import convert_from_path
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
@@ -32,6 +39,8 @@ class PPTXManager(
         SlideManager.__init__(self)
         TableManager.__init__(self)
 
+        os.environ['DOTNET_SYSTEM_GLOBALIZATION_INVARIANT'] = '1'
+
         self.pres = Presentation(source)
 
         self.parse_choice = {
@@ -41,9 +50,48 @@ class PPTXManager(
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
         }
 
+        self.source = source
+
         self.slide_count = len(self.pres.slides)
 
+        self.slide_image = {}
+
         self.parse_presentation()
+
+        self.parse_slide_as_images()
+
+    def get_slide_image(self, slide_id: int) -> bytes:
+        return self.slide_image[slide_id]
+
+    def parse_slide_as_images(self):
+        with TemporaryDirectory() as temp_dir:
+            subprocess.run(
+                [
+                    'libreoffice',
+                    '--headless',
+                    '--convert-to',
+                    'pdf',
+                    '--outdir',
+                    temp_dir,
+                    self.source,
+                ],
+                check=True,
+            )
+
+            pptx_filename = os.path.basename(self.source)
+            base_name = os.path.splitext(pptx_filename)[0]
+            pdf_path = os.path.join(temp_dir, base_name + '.pdf')
+
+            if not os.path.exists(pdf_path):
+                raise FileNotFoundError(f'PDF conversion failed; file not found at {pdf_path}')
+
+            pages = convert_from_path(pdf_path, dpi=200)
+
+            for idx, page in enumerate(pages):
+                image_buffer = BytesIO()
+                page.save(image_buffer, format='PNG')
+
+                self.slide_image[idx + 1] = image_buffer.getvalue()
 
     def parse_presentation(self) -> None:
         logger.debug(f'Анализ презентации вызван с количеством слайдов = {len(self.pres.slides)}')
@@ -230,18 +278,9 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    with open('../test_data/Pr2.jpg', 'rb') as file:
-        image_bytes = file.read()
+    image_bytes = pr.get_slide_image(1)
 
-        pr.create_image_shape(
-            1,
-            CreateImageFrameOpts(
-                left=300,
-                top=400,
-                height=500,
-                width=500,
-                image=image_bytes,
-            ),
-        )
+    with open('test.png', 'wb') as file:
+        file.write(image_bytes)
 
     pr.save('test_create.pptx')

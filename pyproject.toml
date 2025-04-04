@@ -46,6 +46,7 @@ dependencies = [
     "loguru>=0.7.3",
     "agno>=1.2.6",
     "aiogram>=3.19.0",
+    "pdf2image>=1.17.0",
 ]
 name = "pg-ai-core"
 version = "0.1.0"
