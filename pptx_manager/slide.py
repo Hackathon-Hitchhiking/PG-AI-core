@@ -2,16 +2,13 @@ import io
 
 from loguru import logger
 from pptx import Presentation
+from pptx.dml.color import RGBColor
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
-from pptx.util import Pt, Inches, Emu
-from pptx.dml.color import RGBColor
 
+from pptx_manager import utils
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
-from pptx_manager.utils import CustomList
-
-
-from pptx_manager.utils import pt_to_px, px_to_emu, emu_to_px
+from pptx_manager.utils import CustomList, emu_to_px, px_to_emu
 
 
 class SlideManager:
@@ -71,7 +68,7 @@ class SlideManager:
         logger.info(f'Слайды на позициях {slide_id1} и {slide_id2} были обменены местами')
         return 'Success'
 
-    def get_slide_size_px(self) -> tuple[int, int]:
+    def get_slide_size_px(self) -> tuple[float, float]:
         """
         Возвращает размеры слайдов презентации в пикселях.
 
@@ -85,15 +82,9 @@ class SlideManager:
             ValueError: Если презентация не загружена
         """
         if not self.pres:
-            raise ValueError("Презентация не загружена. Сначала вызовите load_presentation()")
+            raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
 
-        width_emu = self.pres.slide_width
-        height_emu = self.pres.slide_height
-
-        return (
-            emu_to_px(width_emu),
-            emu_to_px(height_emu)
-        )
+        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_width)
 
     def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
         """
@@ -127,15 +118,15 @@ class SlideManager:
             manager.set_slide_background_color(1, (34, 139, 34))
         """
         if not self.pres:
-            msg = "Презентация не загружена. Сначала используйте метод `load_presentation`."
+            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
             raise ValueError(msg)
 
         if not all(0 <= c <= 255 for c in color_rgb):
-            raise ValueError("Значения цвета должны быть в диапазоне 0-255")
+            raise ValueError('Значения цвета должны быть в диапазоне 0-255')
 
         slides = self.pres.slides
         if slide_id < 1 or slide_id > len(slides):
-            raise ValueError(f"Недопустимый номер слайда: {slide_id}")
+            raise ValueError(f'Недопустимый номер слайда: {slide_id}')
 
         slide = slides[slide_id - 1]
         background = slide.background
@@ -145,7 +136,7 @@ class SlideManager:
         r, g, b = color_rgb
         fill.fore_color.rgb = RGBColor(r, g, b)
 
-        logger.info(f"Цвет фона слайда {slide_id} изменен на RGB{color_rgb}")
+        logger.info(f'Цвет фона слайда {slide_id} изменен на RGB{color_rgb}')
         return 'Success'
 
     def get_slide_count(self) -> int:
@@ -170,16 +161,17 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
-        logger.debug(f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}')
+        left = utils.px_to_emu(opts.left)
+        top = utils.px_to_emu(opts.top)
+        width = utils.px_to_emu(opts.width)
+        height = utils.px_to_emu(opts.height)
+        logger.debug(
+            f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, left={left}, top={top}, width={width}, height={height}'
+        )
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
-        shape = shape_creator(
-            pt_to_px(opts.left),
-            pt_to_px(opts.top),
-            pt_to_px(opts.width),
-            pt_to_px(opts.height)
-        )
+        shape = shape_creator(left, top, width, height)
 
         shape_id = self.increase_shape_count(slide_id, 1)
 
@@ -190,11 +182,7 @@ class SlideManager:
         slide = self._get_slide_manager(slide_id)
 
         shape = slide.shapes.add_picture(
-            io.BytesIO(image),
-            pt_to_px(opts.left),
-            pt_to_px(opts.top),
-            pt_to_px(opts.width),
-            pt_to_px(opts.height)
+            io.BytesIO(image), px_to_emu(opts.left), px_to_emu(opts.top), px_to_emu(opts.width), px_to_emu(opts.height)
         )
 
         shape_id = self.increase_shape_count(slide_id, 1)
@@ -211,7 +199,7 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
+    def add_slide_at_position(self, position: int, layout_index: int = 0) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 
@@ -229,9 +217,6 @@ class SlideManager:
             layout_index (int, optional): Индекс используемого макета.
                 -   По умолчанию: 0 (первый доступный макет)
                 -   Допустимый диапазон: [0, количество_макетов - 1]
-            title (str | None, optional): Текст заголовка слайда.
-                -   None оставляет заголовок пустым
-                -   Применяется только если макет содержит заголовок
 
         Returns:
             str: Сообщение о результате операции в формате:
@@ -256,7 +241,7 @@ class SlideManager:
             raise ValueError(msg)
 
         logger.debug(
-            f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}, заголовок={title}'
+            f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}'
         )
 
         slide_layout = self.pres.slide_layouts[layout_index]
@@ -266,9 +251,6 @@ class SlideManager:
         new_slide_id = slides[-1]
         del slides[-1]
         slides.insert(position - 1, new_slide_id)
-
-        if title and new_slide.shapes.title:
-            new_slide.shapes.title.text = title
 
         self.slide_metadata.insert(
             position,
@@ -282,8 +264,8 @@ class SlideManager:
 
     def test(self, source: str) -> None:
         self.load_presentation(source)
-        self.add_slide_at_position(1, layout_index=0, title='Inserted Slide 1')
-        self.add_slide_at_position(3, layout_index=0, title='Inserted Slide at Position 3')
+        self.add_slide_at_position(1, layout_index=0)
+        self.add_slide_at_position(3, layout_index=0)
         self.set_slide_background_color(1, (255, 255, 0))
         output_path = 'test_slide.pptx'
         self.pres.save(output_path)
@@ -291,4 +273,4 @@ class SlideManager:
 
 if __name__ == '__main__':
     sm = SlideManager()
-    sm.test('test_data/test_dit.pptx')
+    sm.test('/home/pocket-brain/PG-AI-core/test_data/test_dit.pptx')

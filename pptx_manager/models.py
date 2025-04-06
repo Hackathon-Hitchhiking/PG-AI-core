@@ -20,6 +20,9 @@ class TextFrameShape(BaseModel):
     strike: bool | None = None
     color: tuple | None = None
 
+    left: float | None = None
+    top: float | None = None
+
     text_manager: TextFrame
     font_manager: Font
     shape_manager: Shape
@@ -77,11 +80,11 @@ class CreateImageFrameOpts(ImageFrameOpts):
 class ImageFrameShape(BaseModel):
     shape_id: int
 
-    width: int
-    height: int
+    width: float
+    height: float
 
-    left: int
-    top: int
+    left: float
+    top: float
 
     blob: bytes | None = None
 
