@@ -199,7 +199,7 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
+    def add_slide_at_position(self, position: int, layout_index: int = 0) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 
@@ -217,9 +217,6 @@ class SlideManager:
             layout_index (int, optional): Индекс используемого макета.
                 -   По умолчанию: 0 (первый доступный макет)
                 -   Допустимый диапазон: [0, количество_макетов - 1]
-            title (str | None, optional): Текст заголовка слайда.
-                -   None оставляет заголовок пустым
-                -   Применяется только если макет содержит заголовок
 
         Returns:
             str: Сообщение о результате операции в формате:
@@ -244,7 +241,7 @@ class SlideManager:
             raise ValueError(msg)
 
         logger.debug(
-            f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}, заголовок={title}'
+            f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}'
         )
 
         slide_layout = self.pres.slide_layouts[layout_index]
@@ -254,9 +251,6 @@ class SlideManager:
         new_slide_id = slides[-1]
         del slides[-1]
         slides.insert(position - 1, new_slide_id)
-
-        if title and new_slide.shapes.title:
-            new_slide.shapes.title.text = title
 
         self.slide_metadata.insert(
             position,
@@ -270,8 +264,8 @@ class SlideManager:
 
     def test(self, source: str) -> None:
         self.load_presentation(source)
-        self.add_slide_at_position(1, layout_index=0, title='Inserted Slide 1')
-        self.add_slide_at_position(3, layout_index=0, title='Inserted Slide at Position 3')
+        self.add_slide_at_position(1, layout_index=0)
+        self.add_slide_at_position(3, layout_index=0)
         self.set_slide_background_color(1, (255, 255, 0))
         output_path = 'test_slide.pptx'
         self.pres.save(output_path)
@@ -279,4 +273,4 @@ class SlideManager:
 
 if __name__ == '__main__':
     sm = SlideManager()
-    sm.test('../test_data/test_dit.pptx')
+    sm.test('/home/pocket-brain/PG-AI-core/test_data/test_dit.pptx')
