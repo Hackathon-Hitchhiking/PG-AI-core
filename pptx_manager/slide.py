@@ -3,6 +3,7 @@ import io
 from loguru import logger
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.text import MSO_AUTO_SIZE
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
 
@@ -164,16 +165,22 @@ class SlideManager:
         width = utils.px_to_emu(opts.width)
         height = utils.px_to_emu(opts.height)
 
-        left = utils.px_to_emu(opts.left + opts.width)
-        top = utils.px_to_emu(opts.top + opts.height)
+        pix_left = opts.left + opts.width
+        pix_top = opts.top + opts.height
+
+        left = utils.px_to_emu(pix_left)
+        top = utils.px_to_emu(pix_top)
 
         logger.debug(
-            f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, left={left}, top={top}, width={width}, height={height}'
+            f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, pix left={pix_left}, pix top={pix_top}, pix width={opts.width}, pix height={opts.height}'
         )
         slide = self._get_slide_manager(slide_id)
 
         shape_creator = self._shape_type_creator[opts.type](slide)
         shape = shape_creator(left, top, width, height)
+
+        # TODO Search this more
+        shape.text_frame.auto_size = MSO_AUTO_SIZE.MIXED
 
         shape_id = self.increase_shape_count(slide_id, 1)
 

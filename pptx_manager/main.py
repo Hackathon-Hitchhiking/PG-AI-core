@@ -32,7 +32,7 @@ class PPTXManager(
     SlideManager,
     TableManager,
 ):
-    def __init__(self, source: str | None) -> None:
+    def __init__(self, source: str | None, parse_slide_image: bool = False) -> None:
         super().__init__()
         TextFrameManager.__init__(self)
         ImageManager.__init__(self)
@@ -59,7 +59,8 @@ class PPTXManager(
 
         self.parse_presentation()
 
-        self.parse_slide_as_images()
+        if parse_slide_image:
+            self.parse_slide_as_images()
 
     def get_slide_image(self, slide_id: int) -> bytes:
         return self.slide_image[slide_id]
@@ -295,7 +296,7 @@ if __name__ == '__main__':
     test_text = 'Видеоаналитика в городском управлении'
 
     pr.create_text_shape(
-        13, CreateTextFrameOpts(left=48, top=100, width=213, height=58, text=test_text, color=(0, 0, 0), size=24)
+        13, CreateTextFrameOpts(left=67, top=757, width=133, height=47, text=test_text, color=(0, 0, 0), size=36)
     )
 
     logger.debug(f'13 slide text: {pr.get_text_frame_json(13)}')
