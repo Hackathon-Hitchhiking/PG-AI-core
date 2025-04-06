@@ -84,7 +84,7 @@ class SlideManager:
         if not self.pres:
             raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
 
-        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_width)
+        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_height)
 
     def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
         """
@@ -199,7 +199,7 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str | None = None) -> str:
+    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 
