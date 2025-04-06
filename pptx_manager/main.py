@@ -170,10 +170,6 @@ class PPTXManager(
             slide_id,
             shape_id,
             UpdateTextFrameOpts(
-                left=opts.left,
-                top=opts.top,
-                width=opts.width,
-                height=opts.height,
                 text=opts.text,
                 color=opts.color,
                 size=opts.size,
@@ -296,10 +292,12 @@ if __name__ == '__main__':
 
     small_text = 'test'
 
+    test_text = 'Видеоаналитика в городском управлении'
+
     pr.create_text_shape(
-        13, CreateTextFrameOpts(left=0, top=0, width=100, height=100, text=small_text, color=(0, 0, 0), size=32)
+        13, CreateTextFrameOpts(left=48, top=100, width=213, height=58, text=test_text, color=(0, 0, 0), size=24)
     )
 
-    pr.update_text_frame_shape(13, 1, {'left': 100, 'top': 100, 'width': 100, 'height': 100})
+    logger.debug(f'13 slide text: {pr.get_text_frame_json(13)}')
 
     pr.save('test_create.pptx')

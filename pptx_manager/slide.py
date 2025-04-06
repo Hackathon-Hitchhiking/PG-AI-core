@@ -8,7 +8,7 @@ from pptx.slide import Slide
 
 from pptx_manager import utils
 from pptx_manager.models import CreateShapeOpts, ShapeType, SlideFrame
-from pptx_manager.utils import CustomList, emu_to_px, px_to_emu
+from pptx_manager.utils import CustomList, emu_to_px
 
 
 class SlideManager:
@@ -161,10 +161,12 @@ class SlideManager:
         return self.slide_metadata[slide_id].slide_manager
 
     def _add_shape_on_slide(self, slide_id: int, opts: CreateShapeOpts) -> tuple[Shape, int]:
-        left = utils.px_to_emu(opts.left)
-        top = utils.px_to_emu(opts.top)
         width = utils.px_to_emu(opts.width)
         height = utils.px_to_emu(opts.height)
+
+        left = utils.px_to_emu(opts.left + opts.width)
+        top = utils.px_to_emu(opts.top + opts.height)
+
         logger.debug(
             f'Вызов _add_shape_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}, left={left}, top={top}, width={width}, height={height}'
         )
@@ -181,9 +183,13 @@ class SlideManager:
         logger.debug(f'Вызов _add_image_on_slide с параметрами: номер слайда={slide_id}, параметры={opts}')
         slide = self._get_slide_manager(slide_id)
 
-        shape = slide.shapes.add_picture(
-            io.BytesIO(image), px_to_emu(opts.left), px_to_emu(opts.top), px_to_emu(opts.width), px_to_emu(opts.height)
-        )
+        width = utils.px_to_emu(opts.width)
+        height = utils.px_to_emu(opts.height)
+
+        left = utils.px_to_emu(opts.left + opts.width)
+        top = utils.px_to_emu(opts.top + opts.height)
+
+        shape = slide.shapes.add_picture(io.BytesIO(image), left, top, width, height)
 
         shape_id = self.increase_shape_count(slide_id, 1)
 
