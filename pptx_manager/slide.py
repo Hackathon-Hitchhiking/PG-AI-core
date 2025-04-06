@@ -84,7 +84,7 @@ class SlideManager:
         if not self.pres:
             raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
 
-        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_width)
+        return emu_to_px(self.pres.slide_width), emu_to_px(self.pres.slide_height)
 
     def set_slide_background_color(self, slide_id: int, color_rgb: tuple[int, int, int]) -> str:
         """
