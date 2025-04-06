@@ -199,7 +199,7 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str = None) -> str:
+    def add_slide_at_position(self, position: int, layout_index: int = 0, title: str | None = None) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 

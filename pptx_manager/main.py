@@ -278,9 +278,10 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    image_bytes = pr.get_slide_image(1)
+    pr.add_slide_at_position(13, 0, None)
 
-    with open('test.png', 'wb') as file:
-        file.write(image_bytes)
+    pr.create_text_shape(
+        13, CreateTextFrameOpts(left=100, top=100, width=100, height=100, text='test', color=(0, 0, 0), size=32)
+    )
 
     pr.save('test_create.pptx')
