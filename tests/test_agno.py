@@ -1,91 +1,20 @@
 import base64
-import getpass
 import os
 
-import httpx
-
-from agno.agent import Agent
-from agno.models.openai import OpenAIChat
-from agno.team import Team
-from dotenv import load_dotenv
 from loguru import logger
-from openai import AsyncOpenAI, OpenAI
 
 from pptx_manager.main import PPTXManager
 from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
+from tests.agno_manager import get_head_agent, open_sync_client
 
-
-load_dotenv()
-
-if not os.environ.get('OPENAI_API_KEY'):
-    os.environ['OPENAI_API_KEY'] = getpass.getpass('Enter API key for OpenAI: ')
-
-
-def str2bool(value: str) -> bool:
-    return str(value).lower() in ('true', '1', 'yes', 'y', 'on')
-
-
-if str2bool(os.environ.get('USE_PROXY_URLS', 'True')):
-    http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
-    http_sync_client = httpx.Client(proxy='http://127.0.0.1:1080')
-else:
-    http_async_client = None
-    http_sync_client = None
-
-open_async_client = AsyncOpenAI(
-    http_client=http_async_client,
-)
-
-open_sync_client = OpenAI(
-    http_client=http_sync_client,
-)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
 pr = PPTXManager(test_pres_path)
 
-text_json = pr.get_all_text_frame_json()
-
-# pr_json = pr.get_all_text_frame_json()
-
-model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
-
-text_agent = Agent(
-    name='Text Agent',
-    instructions=[
-        'Вы — эксперт по управлению текстом в PowerPoint, использующий slide_id (номер слайда) и shape_id (идентификатор текстового элемента) для точного определения местоположения элементов.',
-        'Перед выполнением операции всегда проверяйте корректность slide_id и shape_id.',
-        'Изменяйте текст с соблюдением следующих требований:',
-        '- Сохраняйте исходное форматирование (шрифт, размер, цвет).',
-        '- Поддерживайте структурную целостность слайда.',
-        '- Учитывайте заданные параметры шрифта, размера и других стилей.',
-        'После выполнения операции подтверждайте изменения и предоставляйте отчет о проделанной работе.',
-        'Не изменяйте макет слайда или структуру презентации без явного запроса.',
-        'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
-        f'структура текстовых элементов: {text_json}',
-        f'Размер слайдов в пикселях {pr.get_slide_size_px()}, используй координаты, чтобы вставлять объекты.'
-    ],
-    tools=[pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape],
-    model=model,
-    show_tool_calls=True,
-    markdown=True,
-    debug_mode=True,
-)
-
-slide_agent = Agent(
-    name='Slide Agent',
-    role='Presentation Slide Content Specialist',
-    instructions=[
-        'Вы — эксперт по управлению количеством слайдов в PowerPoint.',
-        'Работайте только с указанными элементами. Не выполняйте предположений относительно контекста или содержимого.',
-        'Если пользователь просит добавить слайд, без указания позиции, то его надо добавить в конец презентации, используй этого знание о количестве слайдов',
-        f'кол-во слайдов: {pr.get_slide_count()}',
-        f'Размер слайдов в пикселях {pr.get_slide_size_px()}'
-    ],
-    tools=[pr.add_slide_at_position, pr.swap_slides, pr.set_slide_background_color],
-    model=model,
-    show_tool_calls=True,
-    debug_mode=True,
-)
+# text_json = pr.get_all_text_frame_json()
+# image_json = pr.get_all_image_json()
+slide_size = pr.get_slide_size_px()
+slide_count = pr.get_slide_count()
 
 
 def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
@@ -130,62 +59,6 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
     )
 
 
-image_agent = Agent(
-    name='Image Agent',
-    instructions=[
-        'Вы Визуальный Инженер презентаций: эксперт по работе с изображениями в PowerPoint',
-        ' Основные задачи:',
-        'Точная вставка/замена изображений (только по slide_id и shape_id)',
-        'Автокоррекция параметров',
-        'Позиционирование с привязкой к сетке (шаг 0.1 см)',
-        'Протокол работы:',
-        '1. Получить задание: [Слайд][Элемент][Действие][Параметры]',
-        '2. Проверить:',
-        '   - Существование slide_id/shape_id',
-        '   - Совместимость формата файла',
-        '   - Соответствие бренд-буку (RGB/CMYK)',
-        '3. Выполнить с автоматической оптимизацией: ...',
-        '4. Верификация:',
-        '   - Сравнение хэша изображения',
-        '   - Проверка метаданных',
-        '   - Контроль слоев',
-    ],
-    tools=[create_image],
-    model=model,
-    show_tool_calls=True,
-    debug_mode=True,
-)
-
-head_agent = Team(
-    mode='route',
-    members=[text_agent, slide_agent, image_agent],
-    model=model,
-    instructions=[
-        'Вы главный по управлению презентациями: координируешь агентов для правок в PowerPoint',
-        'Обязанности:',
-        'Распределяй задачи между агентами (текст, графика, макеты)',
-        'Контролируй выполнение по slide_id (номер слайда) и shape_id (ID элемента)',
-        'Гарантируй сохранение стиля и структуры презентации',
-        'Этапы работы:',
-        '1. Разбери запрос → определи нужных агентов',
-        '2. Дай точные указания (слайд/элемент/действие)',
-        '3. Проверь результат:',
-        '   - Корректность позиционирования',
-        '   - Соответствие стилю',
-        '   - Целостность презентации',
-        'При ошибках:',
-        'Повтори попытку (макс. 2 раза)',
-        'Подключи другого агента',
-        'Сообщи об проблеме',
-        'Если работа выполнена в рамках одного запроса пользователя не надо вызывать агента ещё раз',
-    ],
-    memory=None,
-    context=None,
-    show_tool_calls=True,
-    show_members_responses=True,
-    debug_mode=True,
-)
-
 # Initial description of the presentation
 # response = head_agent.run(f'presentation:{pr_json}\n\nОпиши содержимое презентации.')
 
@@ -197,7 +70,30 @@ while True:
         print('Диалог завершен.')
         break
 
+    head_agent, text_agent, slide_agent, image_agent = get_head_agent()
+
+    text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'
+    image_agent.instructions[-1] = f'структура картинок в презентации: {pr.get_all_image_json()}'
+    slide_agent.instructions[-1] = f'кол-во слайдов: {pr.get_slide_count()}'
+
+    text_agent.instructions[-2] = (
+        f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
+    )
+    image_agent.instructions[-2] = (
+        f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
+    )
+    slide_agent.instructions[-2] = (
+        f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
+    )
+
+    text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape]
+    slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]
+    image_agent.tools = [create_image]
+
     response = head_agent.run(f'{user_input}')
+
+    head_agent.memory = None
+
     print(response.content)
     logger.debug(f'formated_tool_calls = {response.formatted_tool_calls}')
     logger.debug(f'tools = {[response.tools for response in response.member_responses if response.tools is not None]}')

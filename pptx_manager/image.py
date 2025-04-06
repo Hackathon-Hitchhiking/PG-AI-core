@@ -10,8 +10,9 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.parts.image import Image
 from pptx.shapes.autoshape import Shape
 
+from pptx_manager import utils
 from pptx_manager.models import ImageFrameOpts, ImageFrameShape
-from pptx_manager.utils import get_slide_from_shape
+from pptx_manager.utils import get_slide_from_shape, px_to_emu
 
 
 def image_to_byte_array(image: Image) -> bytes:
@@ -30,6 +31,14 @@ class ImageManager:
 
     def get_image_json(self, slide_id: int) -> list[dict]:
         return [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in self.image_frame_shapes[slide_id]]
+
+    def get_all_image_json(self):
+        image_frame_json = {}
+
+        for slide_id, shapes in self.image_frame_shapes.items():
+            image_frame_json[slide_id] = [shape.model_dump(exclude={'blob', 'shape_manager'}) for shape in shapes]
+
+        return image_frame_json
 
     def replace_image(self, slide_id: int, shape_id: int | None, new_picture: bytes) -> str:
         """
@@ -111,16 +120,16 @@ class ImageManager:
         changed_shapes = []
         for shape in self._get_image_frame(slide_id, shape_id):
             if opts.width is not None:
-                shape.shape_manager.width = opts.width
+                shape.shape_manager.width = px_to_emu(opts.width)
 
             if opts.height is not None:
-                shape.shape_manager.height = opts.height
+                shape.shape_manager.height = px_to_emu(opts.height)
 
             if opts.left is not None:
-                shape.shape_manager.left = opts.left
+                shape.shape_manager.left = px_to_emu(opts.left)
 
             if opts.top is not None:
-                shape.shape_manager.top = opts.top
+                shape.shape_manager.top = px_to_emu(opts.top)
 
             changed_shapes.append(f'Фигура {shape.shape_id}')
 
@@ -160,10 +169,10 @@ class ImageManager:
 
         image_frame_shape = ImageFrameShape(
             shape_id=shape_id,
-            width=width,
-            height=height,
-            left=shape.left,
-            top=shape.top,
+            width=utils.emu_to_px(width),
+            height=utils.emu_to_px(height),
+            left=utils.emu_to_px(shape.left),
+            top=utils.emu_to_px(shape.top),
             blob=image_bytes,
             shape_manager=shape,
         )
@@ -190,9 +199,11 @@ class ImageManager:
 
         new_img = PilImage.open('../test_data/Pr2.jpg')
 
-        self.replace_image(2, None, image_to_byte_array(new_img))
+        logger.debug(f'frames = {self.get_all_image_json()}')
 
-        self.update_image_frame_shape(2, None, {'width': 500_000, 'top': 500})
+        # self.replace_image(1, None, image_to_byte_array(new_img))
+
+        # self.update_image_frame_shape(1, None, {'left': 300, 'top': 300})
 
         self._pres.save('test_new_img.pptx')
 
@@ -200,4 +211,4 @@ class ImageManager:
 if __name__ == '__main__':
     im = ImageManager()
 
-    im.test('../test_sources/test_dit.pptx')
+    im.test('../test_data/test_dit.pptx')

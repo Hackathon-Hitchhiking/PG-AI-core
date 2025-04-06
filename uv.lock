@@ -61,6 +61,23 @@ wheels = [
 ]
 
 [[package]]
+name = "aiogram"
+version = "3.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "aiohttp" },
+    { name = "certifi" },
+    { name = "magic-filter" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6c/df/5c085eda1691ea103de5425b31b510bbb103310efc0553cecbb000b502e9/aiogram-3.19.0.tar.gz", hash = "sha256:6795d9b47a9e3c0836fa82598f2e6f175552bd374aca730e4d5c0c381dd127cd", size = 1438205 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/fe/b332b2386de84485e9590d7b12ad916c9e2fe82a7d61c2b62086d770d17e/aiogram-3.19.0-py3-none-any.whl", hash = "sha256:b8ebed87c9aba5a4f08bf99cec5b60cb1fc16aa91b03829acf65a052f1703d31", size = 617170 },
+]
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1865,6 +1882,15 @@ wheels = [
 ]
 
 [[package]]
+name = "magic-filter"
+version = "1.0.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/08/da7c2cc7398cc0376e8da599d6330a437c01d3eace2f2365f300e0f3f758/magic_filter-1.0.12.tar.gz", hash = "sha256:4751d0b579a5045d1dc250625c4c508c18c3def5ea6afaf3957cb4530d03f7f9", size = 11071 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cc/75/f620449f0056eff0ec7c1b1e088f71068eb4e47a46eb54f6c065c6ad7675/magic_filter-1.0.12-py3-none-any.whl", hash = "sha256:e5929e544f310c2b1f154318db8c5cdf544dd658efa998172acd2e4ba0f6c6a6", size = 11335 },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2547,6 +2573,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pdf2image"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/00/d8/b280f01045555dc257b8153c00dee3bc75830f91a744cd5f84ef3a0a64b1/pdf2image-1.17.0.tar.gz", hash = "sha256:eaa959bc116b420dd7ec415fcae49b98100dda3dd18cd2fdfa86d09f112f6d57", size = 12811 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/33/61766ae033518957f877ab246f87ca30a85b778ebaad65b7f74fa7e52988/pdf2image-1.17.0-py3-none-any.whl", hash = "sha256:ecdd58d7afb810dffe21ef2b1bbc057ef434dabbac6c33778a38a3f7744a27e2", size = 11618 },
+]
+
+[[package]]
 name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2565,6 +2603,7 @@ source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
     { name = "agno" },
+    { name = "aiogram" },
     { name = "cachetools" },
     { name = "diffusers" },
     { name = "ipykernel" },
@@ -2580,6 +2619,7 @@ dependencies = [
     { name = "loguru" },
     { name = "openai" },
     { name = "openai-agents" },
+    { name = "pdf2image" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "python-pptx" },
@@ -2599,6 +2639,7 @@ dev = [
 requires-dist = [
     { name = "accelerate", specifier = ">=1.5.2,<2.0.0" },
     { name = "agno", specifier = ">=1.2.6" },
+    { name = "aiogram", specifier = ">=3.19.0" },
     { name = "cachetools", specifier = ">=5.5.2,<6.0.0" },
     { name = "diffusers", specifier = ">=0.32.2,<1.0.0" },
     { name = "ipykernel", specifier = ">=6.29.5,<7.0.0" },
@@ -2614,6 +2655,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "openai", specifier = ">=1.66.3,<2.0.0" },
     { name = "openai-agents", specifier = ">=0.0.7" },
+    { name = "pdf2image", specifier = ">=1.17.0" },
     { name = "pydantic", specifier = ">=2.10.6,<3.0.0" },
     { name = "pydantic-ai", specifier = ">=0.0.43" },
     { name = "python-pptx", specifier = ">=1.0.2,<2.0.0" },

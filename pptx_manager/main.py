@@ -1,4 +1,12 @@
+import os
+import subprocess
+
+from io import BytesIO
+from tempfile import TemporaryDirectory
+from textwrap import dedent
+
 from loguru import logger
+from pdf2image import convert_from_path
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
@@ -9,7 +17,7 @@ from pptx_manager.models import (
     CreateShapeOpts,
     CreateTextFrameOpts,
     ShapeType,
-    TextFrameOpts,
+    UpdateTextFrameOpts,
 )
 from pptx_manager.shape import ShapeManager
 from pptx_manager.slide import SlideManager
@@ -32,6 +40,8 @@ class PPTXManager(
         SlideManager.__init__(self)
         TableManager.__init__(self)
 
+        os.environ['DOTNET_SYSTEM_GLOBALIZATION_INVARIANT'] = '1'
+
         self.pres = Presentation(source)
 
         self.parse_choice = {
@@ -41,9 +51,48 @@ class PPTXManager(
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
         }
 
+        self.source = source
+
         self.slide_count = len(self.pres.slides)
 
+        self.slide_image = {}
+
         self.parse_presentation()
+
+        self.parse_slide_as_images()
+
+    def get_slide_image(self, slide_id: int) -> bytes:
+        return self.slide_image[slide_id]
+
+    def parse_slide_as_images(self):
+        with TemporaryDirectory() as temp_dir:
+            subprocess.run(
+                [
+                    'libreoffice',
+                    '--headless',
+                    '--convert-to',
+                    'pdf',
+                    '--outdir',
+                    temp_dir,
+                    self.source,
+                ],
+                check=True,
+            )
+
+            pptx_filename = os.path.basename(self.source)
+            base_name = os.path.splitext(pptx_filename)[0]
+            pdf_path = os.path.join(temp_dir, base_name + '.pdf')
+
+            if not os.path.exists(pdf_path):
+                raise FileNotFoundError(f'PDF conversion failed; file not found at {pdf_path}')
+
+            pages = convert_from_path(pdf_path, dpi=200)
+
+            for idx, page in enumerate(pages):
+                image_buffer = BytesIO()
+                page.save(image_buffer, format='PNG')
+
+                self.slide_image[idx + 1] = image_buffer.getvalue()
 
     def parse_presentation(self) -> None:
         logger.debug(f'Анализ презентации вызван с количеством слайдов = {len(self.pres.slides)}')
@@ -120,7 +169,11 @@ class PPTXManager(
         self.update_text_frame_shape(
             slide_id,
             shape_id,
-            TextFrameOpts(
+            UpdateTextFrameOpts(
+                left=opts.left,
+                top=opts.top,
+                width=opts.width,
+                height=opts.height,
                 text=opts.text,
                 color=opts.color,
                 size=opts.size,
@@ -230,18 +283,23 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    with open('../test_data/Pr2.jpg', 'rb') as file:
-        image_bytes = file.read()
+    pr.add_slide_at_position(13, 0, None)
 
-        pr.create_image_shape(
-            1,
-            CreateImageFrameOpts(
-                left=300,
-                top=400,
-                height=500,
-                width=500,
-                image=image_bytes,
-            ),
-        )
+    big_test = dedent("""
+    Видеоаналитика – эффективный и перспективный инструмент для большинства отраслей городского управления. Задача – расширить ее применение. 
+    В сфере безопасности аналитика позволит фиксировать нестандартное поведения отдельных людей, аномальные скопления толп, продолжит улучшать процесс поиска правонарушителей и пропавших граждан. Для расследования и предотвращения преступлений будут развиваться алгоритмы анализа больших данных видеонаблюдения.
+    Новые алгоритмы для анализа объектов городской инфраструктуры помогут выявлять еще больше недочетов в ЖКХ и сфере землепользования: следить за содержанием объектов, территорий, а также мониторить работы по благоустройству и строительству. 
+    Используя данные от ИИ, который будет анализировать пути движения пешеходов и пользователей СИМ, можно будет формировать оптимальные варианты для организации пешеходных переходов и других объектов улично-дорожной сети. 
+    Компьютерное зрение найдет применение и в сфере массового обслуживания. Это мониторинг очередей в МФЦ, объектах здравоохранения и соцсферы.
+    Планируется и развитие инструментов дополнительного анализа видеоданных. Пользователи ЕЦХД смогут переходить в трехмерное видеопространство, как способ более эффективного получения информации о текущей ситуации или навигации по архивным данным в прошлом «внутри» цифрового двойника Москвы. Конвергентная умная разметка видеополя (фиксация на изображении различных объектов и их состояний) позволит быстро находить изображения и увеличит срок хранения полезной информации в архиве.
+    """)
+
+    small_text = 'test'
+
+    pr.create_text_shape(
+        13, CreateTextFrameOpts(left=0, top=0, width=100, height=100, text=small_text, color=(0, 0, 0), size=32)
+    )
+
+    pr.update_text_frame_shape(13, 1, {'left': 100, 'top': 100, 'width': 100, 'height': 100})
 
     pr.save('test_create.pptx')

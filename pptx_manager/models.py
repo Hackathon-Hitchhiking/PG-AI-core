@@ -20,6 +20,12 @@ class TextFrameShape(BaseModel):
     strike: bool | None = None
     color: tuple | None = None
 
+    left: float | None = None
+    top: float | None = None
+
+    width: int | None = None
+    height: int | None = None
+
     text_manager: TextFrame
     font_manager: Font
     shape_manager: Shape
@@ -36,6 +42,14 @@ class TextFrameOpts(BaseModel):
     bold: bool | None = None
     italic: bool | None = None
     underline: bool | None = None
+
+
+class UpdateTextFrameOpts(TextFrameOpts):
+    left: int | None = None
+    top: int | None = None
+
+    width: int | None = None
+    height: int | None = None
 
 
 class CreateTextFrameOpts(TextFrameOpts):
@@ -77,11 +91,11 @@ class CreateImageFrameOpts(ImageFrameOpts):
 class ImageFrameShape(BaseModel):
     shape_id: int
 
-    width: int
-    height: int
+    width: float
+    height: float
 
-    left: int
-    top: int
+    left: float
+    top: float
 
     blob: bytes | None = None
 
