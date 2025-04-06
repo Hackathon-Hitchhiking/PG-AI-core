@@ -3,6 +3,7 @@ import subprocess
 
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from textwrap import dedent
 
 from loguru import logger
 from pdf2image import convert_from_path
@@ -16,7 +17,7 @@ from pptx_manager.models import (
     CreateShapeOpts,
     CreateTextFrameOpts,
     ShapeType,
-    TextFrameOpts,
+    UpdateTextFrameOpts,
 )
 from pptx_manager.shape import ShapeManager
 from pptx_manager.slide import SlideManager
@@ -168,7 +169,11 @@ class PPTXManager(
         self.update_text_frame_shape(
             slide_id,
             shape_id,
-            TextFrameOpts(
+            UpdateTextFrameOpts(
+                left=opts.left,
+                top=opts.top,
+                width=opts.width,
+                height=opts.height,
                 text=opts.text,
                 color=opts.color,
                 size=opts.size,
@@ -280,8 +285,21 @@ if __name__ == '__main__':
 
     pr.add_slide_at_position(13, 0, None)
 
+    big_test = dedent("""
+    Видеоаналитика – эффективный и перспективный инструмент для большинства отраслей городского управления. Задача – расширить ее применение. 
+    В сфере безопасности аналитика позволит фиксировать нестандартное поведения отдельных людей, аномальные скопления толп, продолжит улучшать процесс поиска правонарушителей и пропавших граждан. Для расследования и предотвращения преступлений будут развиваться алгоритмы анализа больших данных видеонаблюдения.
+    Новые алгоритмы для анализа объектов городской инфраструктуры помогут выявлять еще больше недочетов в ЖКХ и сфере землепользования: следить за содержанием объектов, территорий, а также мониторить работы по благоустройству и строительству. 
+    Используя данные от ИИ, который будет анализировать пути движения пешеходов и пользователей СИМ, можно будет формировать оптимальные варианты для организации пешеходных переходов и других объектов улично-дорожной сети. 
+    Компьютерное зрение найдет применение и в сфере массового обслуживания. Это мониторинг очередей в МФЦ, объектах здравоохранения и соцсферы.
+    Планируется и развитие инструментов дополнительного анализа видеоданных. Пользователи ЕЦХД смогут переходить в трехмерное видеопространство, как способ более эффективного получения информации о текущей ситуации или навигации по архивным данным в прошлом «внутри» цифрового двойника Москвы. Конвергентная умная разметка видеополя (фиксация на изображении различных объектов и их состояний) позволит быстро находить изображения и увеличит срок хранения полезной информации в архиве.
+    """)
+
+    small_text = 'test'
+
     pr.create_text_shape(
-        13, CreateTextFrameOpts(left=100, top=100, width=100, height=100, text='test', color=(0, 0, 0), size=32)
+        13, CreateTextFrameOpts(left=0, top=0, width=100, height=100, text=small_text, color=(0, 0, 0), size=32)
     )
+
+    pr.update_text_frame_shape(13, 1, {'left': 100, 'top': 100, 'width': 100, 'height': 100})
 
     pr.save('test_create.pptx')
