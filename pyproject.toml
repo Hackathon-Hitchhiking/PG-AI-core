@@ -44,7 +44,7 @@ dependencies = [
     "openai-agents>=0.0.7",
     "pydantic-ai>=0.0.43",
     "loguru>=0.7.3",
-    "agno>=1.2.6",
+    "agno>=1.2.15",
     "aiogram>=3.19.0",
     "pdf2image>=1.17.0",
 ]

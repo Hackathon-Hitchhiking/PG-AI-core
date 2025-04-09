@@ -12,9 +12,10 @@ from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
 from loguru import logger
 from openai import AsyncOpenAI, OpenAI
+from pydantic import BaseModel
 
 from pptx_manager.main import PPTXManager
-from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts, TextFrameOpts
+from pptx_manager.models import CreateImageFrameOpts, CreateTextFrameOpts, ImageFrameOpts, TextFrameOpts
 from tests.agno_manager import get_head_agent
 
 
@@ -43,6 +44,17 @@ open_sync_client = OpenAI(
     http_client=http_sync_client,
 )
 
+
+class CreateStyleAgentImageFrameOpts(ImageFrameOpts):
+    prompt: str
+
+
+class StyleAgentResponse(BaseModel):
+    text_blocks: list[CreateTextFrameOpts]
+    image_blocks: list[CreateStyleAgentImageFrameOpts]
+    slide_count: int
+
+
 model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
@@ -51,24 +63,20 @@ pr = PPTXManager(test_pres_path, True)
 style_agent = Agent(
     name='Style Agent',
     instructions=[
-        'Проанализируй предоставленные шаблонные слайды и определи:',
-        '1.Расположение текстовых блоков (заголовки, подзаголовки, основные пункты).',
-        '3.Цветовую палитру и шрифты.',
-        # TODO Explain model what mean Style
-        'Всегда копируй стиль слайда, который тебе передан, учитывай информацию, которую тебе передали, как текстом, так и картинкой',
+        'Ты агент, который формирует промт, который описывает, то как должен формироваться слайд',
+        'При формирование слайда тебе будет подаваться слайд шаблон всегда старайся следовать ему',
+        'Старайся копировать расположение, цвет, шрифт, размер тех объектов, которые расположены на слайде шаблон.',
         'Все цвета всегда указывай в RGB',
-        'Всегда указывай на какой слайд добавлять новые объекты',
-        'Если это требуется ты должен использовать списки для формирование текстового блока',
         'Если это требуется ты должен использовать изображения',
-        'При формирование изображения указывай там где оно должно разместиться и так же промт для генерации данного изображения',
         'Если пользователь хочет создать новый слайд, надо указывать, что нужно создать новый слайд и разместить там новые объекты',
+        'При формирование изображения указывай там где оно должно разместиться и так же промт для генерации данного изображения',
         f'параметры, которые можно использовать для текстового блока {TextFrameOpts.model_fields.keys()}',
         f'параметры, которые нужно использовать для размещение всех объектов на слайде {ImageFrameOpts.model_fields.keys()}, используй их вместе со всеми блоками',
         f'учитывай, что размер слайда равен {pr.get_slide_size_px()} в пикселях, когда будешь размещать объекты',
         f'учитывай, что количество слайдов равно {pr.get_slide_count()}',
     ],
     model=model,
-    use_json_mode=True,
+    # response_model=StyleAgentResponse,
 )
 
 slide_id = 9
@@ -91,9 +99,42 @@ message = style_agent.run(
     images=[Image(content=slide_image, format='png')],
 )
 
-style_response = message.content
+style_response: StyleAgentResponse = message.content
 
 logger.debug(f'style response = {style_response}')
+
+# if style_response.slide_count > pr.get_slide_count():
+#     pr.add_slide_at_position(pr.get_slide_count() + 1)
+#
+#     style_response.slide_count = pr.get_slide_count() + 1
+#
+#
+# for text_block in style_response.text_blocks:
+#     pr.create_text_shape(style_response.slide_count, text_block)
+#
+# for image_block in style_response.image_blocks:
+#     logger.debug(f'create_image вызвана с параметрами: slide_id={style_response.slide_count}, opts={image_block}')
+#     response = open_sync_client.images.generate(
+#         model='dall-e-2',
+#         prompt=image_block.prompt,
+#         n=1,
+#         size='512x512',
+#         response_format='b64_json',
+#     )
+#
+#     b64_data = response.data[0].b64_json
+#
+#     image_bytes = base64.b64decode(b64_data)
+#
+#     pr.create_image_shape(style_response.slide_count, CreateImageFrameOpts(
+#         left=image_block.left,
+#         top=image_block.top,
+#
+#         width=image_block.width,
+#         height=image_block.height,
+#
+#         image=image_bytes,
+#     ))
 
 slide_size = pr.get_slide_size_px()
 slide_count = pr.get_slide_count()
@@ -162,5 +203,8 @@ slide_agent.instructions[-2] = (
 )
 
 head_agent.run(style_response)
+
+
+logger.debug(f'metrics = {style_agent.run_response.metrics}')
 
 pr.save('style_test.pptx')
