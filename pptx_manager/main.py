@@ -40,8 +40,6 @@ class PPTXManager(
         SlideManager.__init__(self)
         TableManager.__init__(self)
 
-        os.environ['DOTNET_SYSTEM_GLOBALIZATION_INVARIANT'] = '1'
-
         self.pres = Presentation(source)
 
         self.parse_choice = {

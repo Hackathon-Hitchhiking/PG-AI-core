@@ -37,7 +37,7 @@ class TextFrameShape(BaseModel):
 class TextFrameOpts(BaseModel):
     text: str | None = None
     font_name: str | None = None
-    color: list[int] | None = None
+    color: tuple[int, int, int] | None = None
     size: int | None = None
     bold: bool | None = None
     italic: bool | None = None
