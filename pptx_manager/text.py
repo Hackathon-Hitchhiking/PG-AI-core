@@ -202,7 +202,11 @@ class TextFrameManager:
         copy_font.underline = base_font.underline
         copy_font.language_id = base_font.language_id
 
-        copy_font.color.rgb = RGBColor(*self._get_font_color(slide, base_font))
+        font_color = self._get_font_color(slide, base_font)
+
+        font_color = map(int, font_color)
+
+        copy_font.color.rgb = RGBColor(*font_color)
 
         return copy_font
 
@@ -257,7 +261,7 @@ class TextFrameManager:
             text = merged_text
 
         except Exception as e:
-            logger.warning(f'error parsing text_frame = {e}, text_shape = {shape.text}')
+            logger.warning(f'error parsing text_frame, text_shape = {shape.text}: {e}')
             return None
 
         text_frame_shape = TextFrameShape(
@@ -310,4 +314,4 @@ class TextFrameManager:
 if __name__ == '__main__':
     fm = TextFrameManager()
 
-    fm.test('test_data/test_dit.pptx')
+    fm.test('../test_data/test.pptx')

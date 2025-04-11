@@ -196,8 +196,8 @@ class SlideManager:
         width = utils.px_to_emu(opts.width)
         height = utils.px_to_emu(opts.height)
 
-        left = utils.px_to_emu(opts.left + opts.width)
-        top = utils.px_to_emu(opts.top + opts.height)
+        left = utils.px_to_emu(opts.left)
+        top = utils.px_to_emu(opts.top)
 
         shape = slide.shapes.add_picture(io.BytesIO(image), left, top, width, height)
 
