@@ -107,6 +107,8 @@ class SlideFrame(BaseModel):
 
     slide_manager: Any  # from pptx.slide import Slide
 
+    background_color: list[int]
+
 
 class AddShapeOnSlide(BaseModel):
     left: int

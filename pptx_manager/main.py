@@ -116,17 +116,15 @@ class PPTXManager(
                     self.increase_shape_count(slide_id, 1)
 
     def get_json_schema(self) -> dict:
-        slide_json = {}
+        pres_json = {}
         for slide_id in range(1, self.slide_count + 1):
             text_json = self.get_text_frame_json(slide_id)
             image_json = self.get_image_json(slide_id)
+            slide_json = self.get_slide_json(slide_id)
 
-            slide_json[slide_id] = {
-                'text': text_json,
-                'image': image_json,
-            }
+            pres_json[slide_id] = {'text': text_json, 'image': image_json, 'slide': slide_json}
 
-        return slide_json
+        return pres_json
 
     def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
         """
@@ -175,6 +173,7 @@ class PPTXManager(
                 bold=opts.bold,
                 italic=opts.italic,
                 underline=opts.underline,
+                font_name=opts.font_name,
             ),
         )
 

@@ -22,6 +22,13 @@ class SlideManager:
             ShapeType.IMAGE: lambda slide: slide.shapes.add_picture,
         }
 
+    def get_slide_json(self, slide_id: int) -> dict:
+        return self.slide_metadata[slide_id].model_dump(
+            exclude={
+                'slide_manager',
+            }
+        )
+
     def load_presentation(self, file_path: str) -> None:
         self.pres = Presentation(file_path)
         logger.info(f'Презентация загружена из {file_path}')
@@ -150,7 +157,14 @@ class SlideManager:
         return len(self.pres.slides)
 
     def parse_slide(self, slide_id: int, slide: Slide) -> None:
-        self.slide_metadata.insert(slide_id, SlideFrame(slide_manager=slide, shape_count=1))
+        try:
+            foreground_color = slide.background.fill.fore_color.rgb
+        except TypeError:
+            # if there is no color on the slide setting the base white color
+            foreground_color = [255, 255, 255]
+        self.slide_metadata.insert(
+            slide_id, SlideFrame(slide_manager=slide, shape_count=1, background_color=foreground_color)
+        )
 
     def get_shape_count(self, slide_id: int) -> int:
         return self.slide_metadata[slide_id].shape_count
@@ -215,7 +229,7 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0) -> str:
+    def add_slide_at_position(self, position: int, layout_index: int = 0, background_color=None) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 
@@ -233,6 +247,7 @@ class SlideManager:
             layout_index (int, optional): Индекс используемого макета.
                 -   По умолчанию: 0 (первый доступный макет)
                 -   Допустимый диапазон: [0, количество_макетов - 1]
+            background_color: list[int]: Цвет заднего фона слайда
 
         Returns:
             str: Сообщение о результате операции в формате:
@@ -241,6 +256,9 @@ class SlideManager:
         Raises:
             ValueError: При отсутствии загруженной презентации, неверной позиции или недопустимом индексе макета.
         """
+        if background_color is None:
+            background_color = [0, 0, 0]
+
         if not self.pres:
             msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
             raise ValueError(msg)
@@ -260,6 +278,10 @@ class SlideManager:
 
         slide_layout = self.pres.slide_layouts[layout_index]
         new_slide = self.pres.slides.add_slide(slide_layout)
+        new_slide.background.fill.solid()
+        new_slide.background.fill.fore_color.rgb = RGBColor(
+            background_color[0], background_color[1], background_color[2]
+        )
 
         slides = self.pres.slides._sldIdLst
         new_slide_id = slides[-1]
@@ -268,10 +290,7 @@ class SlideManager:
 
         self.slide_metadata.insert(
             position,
-            SlideFrame(
-                slide_manager=new_slide,
-                shape_count=0,
-            ),
+            SlideFrame(slide_manager=new_slide, shape_count=0, background_color=background_color),
         )
 
         return f'Слайд {position} был добавлен'

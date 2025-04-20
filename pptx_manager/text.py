@@ -177,6 +177,11 @@ class TextFrameManager:
                 frame.shape_manager.top = utils.px_to_emu(opts.top)
                 frame.top = opts.top
 
+            if opts.font_name is not None:
+                logger.debug('changing the font name')
+                frame.font_manager.name = opts.font_name
+                frame.font_name = opts.font_name
+
         return 'Done'
 
     def _delete_text_frame_shape(self, slide_id: int, shape_id: int) -> None:
