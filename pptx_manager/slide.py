@@ -257,7 +257,7 @@ class SlideManager:
             ValueError: При отсутствии загруженной презентации, неверной позиции или недопустимом индексе макета.
         """
         if background_color is None:
-            background_color = [0, 0, 0]
+            background_color = [255, 255, 255]
 
         if not self.pres:
             msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'

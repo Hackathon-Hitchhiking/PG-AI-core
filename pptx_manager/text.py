@@ -121,6 +121,7 @@ class TextFrameManager:
                 -   bold (bool | None, optional): Whether to set the text to bold.
                 -   italic (bool | None, optional): Whether to set the text to italic.
                 -   underline (bool | None, optional): Whether to underline the text.
+                -   font_name(str | None, optional): The name of the font to be updated.
 
         Notes:
             -   Only the attributes specified in `opts` will be updated.
