@@ -72,9 +72,12 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
     """
     logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
 
+    # Append minimalistic style and no text requirements to the prompt
+    enhanced_prompt = f'{prompt}. The image should be in a minimalistic style and contain no text.'
+
     response = open_sync_client.images.generate(
-        model='dall-e-2',
-        prompt=prompt,
+        model='dall-e-3',
+        prompt=enhanced_prompt,
         n=1,
         size='512x512',
         response_format='b64_json',
@@ -110,10 +113,30 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     'Output only a list of clear, step-by-step instructions for HeadAgent to execute.',
     'Do not perform any slide or image creation yourself.',
     'Ensure instructions are unambiguous and cover all necessary details for implementation.',
+    # Enhanced image generation instructions
+    'For each slide, actively consider if it would benefit from relevant images that enhance the content:',
+    '- Images should complement the text content and reinforce key messages',
+    '- Consider using images for abstract concepts, data visualization, or illustrative examples',
+    '- Maintain visual consistency with the presentation style',
+    'When a slide would benefit from an image, include a "create_image" step for HeadAgent:',
+    '- Specify the target slide_id.',
+    '- Give a detailed prompt for DALL·E 2 **in English** so the model understands style and subject clearly.',
+    '- Include specific visual elements, style, composition, and color palette in the prompt',
+    "- Match the prompt's style (palette, mood, level of abstraction) to the reference presentation.",
+    "- Consider the slide's content and purpose when crafting the image prompt",
+    '- Provide exact left, top, width, height (pixels) for the image frame.',
+    '- Example format:  create_image | slide_id=3 | prompt="Flat‑style illustration of a secure server room in blue‑gray palette with servers, network connections, and security elements" | left=100 | top=150 | width=512 | height=512',
+    'For technical or data-heavy slides, consider images that:',
+    '- Visualize complex concepts or processes',
+    '- Illustrate technical components or systems',
+    '- Represent data trends or statistics in a visual format',
+    'For conceptual or strategic slides, consider images that:',
+    '- Evoke the right emotional response',
+    '- Use metaphors or symbols to represent abstract ideas',
+    '- Reinforce the key message or theme of the slide',
 ]
 
-
-model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
+style_agent_model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
 pr = PPTXManager(test_pres_path, True)
@@ -126,7 +149,7 @@ style_agent = Agent(
         f'Reference presentation slide count: {pr.get_slide_count()}',
         f'Reference presentation schema: {pr.get_json_schema()}',
     ],
-    model=model,
+    model=style_agent_model,
     response_model=StyleOutput,
     debug_mode=True,
 )
@@ -140,7 +163,7 @@ text_for_new_slide = dedent("""
 РЕЗУЛЬТАТ ОТ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ
 1. Защита файлов от несанкционированного доступа
 2. Снижение экономического ущерба
-3. Ограниченный доступ к ключам
+3. Ограниченный доступ к ключам                logger.debug('changing the font name')
 """)
 
 big_text_for_new_slide = dedent("""
@@ -167,17 +190,12 @@ big2_text_for_new_slide = dedent("""
 """)
 
 user_request = dedent("""
-Вызовы и перспективы развития вычислительных мощностей
-Рост цифровизации и внедрение искусственного интеллекта требуют постоянного увеличения производительности вычислительных систем.
-Современные ограничения развития вычислительных мощностей связаны как с техническими (замедление роста тактовой частоты, минимальные размеры транзисторов), так и с рыночными факторами (дефицит чипов, зависимость от глобальных цепочек поставок)
-Для преодоления этих вызовов активно развиваются новые технологии: квантовые вычисления, нейроморфные и тензорные процессоры, а также программно-определяемые решения (виртуализация, дезагрегация памяти)
-В России и мире наблюдается тенденция к диверсификации аппаратных платформ и поиску альтернативных способов реализации вычислений, что позволяет повысить устойчивость и гибкость цифровой инфраструктуры
-Инвестиции в развитие новых вычислительных архитектур и отечественных разработок становятся ключевым фактором технологической независимости и лидерства в цифровой экономике
+Добавь на второй слайд информацию о преимуществах искусственного интелекта
 """)
 
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent по добавлению нового слайда и размещению всех элементов: {user_request}',
-    images=slide_images,
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request}',
+    # images=slide_images,
 )
 
 style_output: StyleOutput = message.content
@@ -210,5 +228,6 @@ slide_agent.instructions[-2] = (
 head_agent.run(style_output.instructions)
 
 logger.debug(f'metrics = {style_agent.run_response.metrics}')
+logger.debug(f'metrics = {head_agent.run_response.metrics}')
 
 pr.save('style_test.pptx')

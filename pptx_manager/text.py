@@ -179,7 +179,6 @@ class TextFrameManager:
                 frame.top = opts.top
 
             if opts.font_name is not None:
-                logger.debug('changing the font name')
                 frame.font_manager.name = opts.font_name
                 frame.font_name = opts.font_name
 
