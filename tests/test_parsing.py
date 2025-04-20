@@ -23,7 +23,7 @@ from tests.agno_manager import get_head_agent
 load_dotenv()
 
 if not os.environ.get('OPENAI_API_KEY'):
-    os.environ['OPENAI_API_KEY'] = getpass.getpass('Enter API key for OpenAI: ')
+    os.environ['OPENAI_API_KEY'] = getpass('Enter API key for OpenAI: ')
 
 
 def str2bool(value: str) -> bool:
