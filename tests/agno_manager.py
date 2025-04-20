@@ -35,7 +35,7 @@ open_sync_client = OpenAI(
     http_client=http_sync_client,
 )
 
-model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
+model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
 
 
 def get_head_agent():

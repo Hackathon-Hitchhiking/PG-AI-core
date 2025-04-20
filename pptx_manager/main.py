@@ -67,7 +67,7 @@ class PPTXManager(
         with TemporaryDirectory() as temp_dir:
             subprocess.run(
                 [
-                    'libreoffice',
+                    os.environ.get('LIBREOFFICE_PATH', 'libreoffice'),
                     '--headless',
                     '--convert-to',
                     'pdf',
