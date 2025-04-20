@@ -117,7 +117,7 @@ def get_head_agent():
     )
 
     head_agent = Team(
-        mode='collaborate',
+        mode='route',
         members=[text_agent, slide_agent, image_agent],
         model=model,
         instructions=[
