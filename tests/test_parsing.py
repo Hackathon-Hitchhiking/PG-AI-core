@@ -8,6 +8,7 @@ from textwrap import dedent
 import httpx
 
 from agno.agent import Agent
+from agno.media import Image
 from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
 from loguru import logger
@@ -138,13 +139,6 @@ style_agent = Agent(
         'Confirm no elements overlap or obscure other content.',
         'Test readability of all text elements.',
         'Validate that all generated images display properly.',
-        # Output Specifications
-        'Output: full slide layout with element positioning.',
-        'Output: styling info for each text element.',
-        'Output: image placement and generation prompts.',
-        'Output: special instructions for animations/transitions.',
-        'Output: confirmation that all elements have proper spacing.',
-        'Output: list of any generated images with their specifications.',
         # Technical Parameters
         'Use pixel units for all measurements.',
         'Use RGB format for color specifications.',
@@ -169,7 +163,10 @@ slide_schema = pr.get_json_schema()[slide_id]
 slide_image_schema = pr.get_image_json(slide_id)
 slide_text_schema = pr.get_text_frame_json(slide_id)
 
-slide_image = pr.get_slide_image(slide_id)
+
+slide_images = []
+for slide_id in range(1, pr.get_slide_count() + 1):
+    slide_images.append(Image(content=pr.get_slide_image(slide_id), format='png'))
 
 text_for_new_slide = dedent("""
 РЕЗУЛЬТАТ ОТ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ
@@ -193,31 +190,18 @@ big_text_for_new_slide = dedent("""
 """)
 
 big2_text_for_new_slide = dedent("""
-Развитие мирового рынка квантовых вычислений
-Google намерена показать устройствона 1 000 кубитов после 2025 года
-IBM в октябре 2024 года открыла свой первый квантовый центр обработки данныхв Европе, а также объявила о создании модульной системы, способной поддерживать до 16 632 кубитов
-
-Проблемы рынка квантовых компьютеров
-Высокая стоимость и техническая сложность создания и обслуживания компьютеров
-Мало вариантов использования в реальных задачах
-Сложность создания и поддержки кубитовв стабильном состоянии (температура помещения, вибрации)
-
-Особенности:
-Работа на основе принципов квантовой механики, основной элемент – квантовый бит
-Параллельная обработка данныхс возможностью одновременного перебора всех вариантов ответов
-
-Сценарии применения:
-Решение узкоспециализированных задач: молекулярное моделирование, разработка новых алгоритмов для криптографиии безопасности, биоинформатика и др.
-
-Применение в ИИ:
-Обработка больших объемов данных
-Обучение моделей для классификации и кластеризации
+Вызовы и перспективы развития вычислительных мощностей
+Рост цифровизации и внедрение искусственного интеллекта требуют постоянного увеличения производительности вычислительных систем.
+Современные ограничения развития вычислительных мощностей связаны как с техническими (замедление роста тактовой частоты, минимальные размеры транзисторов), так и с рыночными факторами (дефицит чипов, зависимость от глобальных цепочек поставок)
+Для преодоления этих вызовов активно развиваются новые технологии: квантовые вычисления, нейроморфные и тензорные процессоры, а также программно-определяемые решения (виртуализация, дезагрегация памяти)
+В России и мире наблюдается тенденция к диверсификации аппаратных платформ и поиску альтернативных способов реализации вычислений, что позволяет повысить устойчивость и гибкость цифровой инфраструктуры
+Инвестиции в развитие новых вычислительных архитектур и отечественных разработок становятся ключевым фактором технологической независимости и лидерства в цифровой экономике
 """)
 
 message = style_agent.run(
     # f"сформируй промт для генерации нового слайда для данного текста: '{text_for_new_slide} по данному шаблону: \nтекстовые блоки: {slide_text_schema}\nизображения: {slide_image_schema}'",
     f"сформируй промт для генерации нового слайда для данного текста: '{big2_text_for_new_slide}, вот тебе пример презентации куда тебе надо вставить слайд, попробуй скопировать стиль и найти самый подходящий слайд и на основе его создать новый {pr.get_json_schema()}",
-    # images=[Image(content=slide_image, format='png')],
+    images=slide_images,
 )
 
 style_response: StyleAgentResponse = message.content
