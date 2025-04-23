@@ -132,7 +132,7 @@ class TextFrameManager:
         Returns:
             str: Confirmation of the completion of the task
         """
-        logger.debug(f'update_text_frame_shape calls with parametrs: {slide_id, shape_id, opts}')
+        logger.debug(f'update_text_frame_shape calls with parameters: {slide_id, shape_id, opts}')
 
         if isinstance(opts, dict):
             opts = UpdateTextFrameOpts(**opts)

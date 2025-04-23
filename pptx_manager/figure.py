@@ -251,6 +251,10 @@ class FigureManager:
         Вызывает:
             ValueError: Если презентация не загружена или не создана, или если указан неверный ID слайда.
         """
+        logger.debug(
+            f'add_figure_shape calls with parameters: {slide_id, shape_type, left, top, width, height, kwargs}'
+        )
+
         if not self.pres:
             raise ValueError('Презентация не загружена или не создана')
 
@@ -371,6 +375,9 @@ class FigureManager:
         Вызывает:
             ValueError: Если фигура с указанным ID не найдена на слайде.
         """
+
+        logger.debug(f'update_shape_position calls with parameters: {slide_id, shape_id, left, top, width, height}')
+
         shape = self._get_shape_by_id(slide_id, shape_id)
         if not shape:
             raise ValueError(f'Фигура с ID {shape_id} не найдена на слайде {slide_id}')
@@ -393,7 +400,7 @@ class FigureManager:
             ppt_shape.height = Emu(px_to_emu(height))
             shape.height = height
 
-    def update_shape_color(self, slide_id: int, shape_id: int, color: tuple[int, int, int]) -> None:
+    def update_shape_color(self, slide_id: int, shape_id: int, color: list[int]) -> None:
         """
         Обновляет цвет заливки фигуры.
 
@@ -402,11 +409,13 @@ class FigureManager:
         Аргументы:
             slide_id (int): ID слайда, содержащего фигуру.
             shape_id (int): ID фигуры для обновления.
-            color (Tuple[int, int, int]): Новый цвет заливки (RGB).
+            color (list[int]): Новый цвет заливки (RGB).
 
         Вызывает:
             ValueError: Если фигура с указанным ID не найдена на слайде.
         """
+        logger.debug(f'update_shape_color calls with parameters: {slide_id, shape_id, color}')
+
         shape = self._get_shape_by_id(slide_id, shape_id)
         if not shape:
             raise ValueError(f'Фигура с ID {shape_id} не найдена на слайде {slide_id}')
@@ -455,6 +464,8 @@ class FigureManager:
         Вызывает:
             ValueError: Если фигура с указанным ID не найдена на слайде или значение прозрачности вне диапазона.
         """
+        logger.debug(f'update_shape_transparency calls with parameters: {slide_id, shape_id, transparency}')
+
         if not 0.0 <= transparency <= 1.0:
             raise ValueError('Значение прозрачности должно быть в диапазоне от 0.0 до 1.0')
 
@@ -504,6 +515,8 @@ class FigureManager:
             ValueError: If the shape with the specified ID is not found on the slide or
                     the rounding value is outside the valid range.
         """
+        logger.debug(f'set_shape_rounding calls with parameters: {slide_id, shape_id, rounding_value}')
+
         if not 0.0 <= rounding_value <= 1.0:
             raise ValueError('Rounding value must be between 0.0 and 1.0')
 
