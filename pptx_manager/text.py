@@ -219,6 +219,8 @@ class TextFrameManager:
         for frame in self._get_frame(slide_id, shape_id):
             return frame
 
+        return None
+
     def _parse_text_shape(self, slide_id: int, shape_id: int, shape: Shape) -> TextFrameShape | None:
         if shape.text == '' and shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
             return None

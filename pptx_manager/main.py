@@ -8,9 +8,10 @@ from textwrap import dedent
 from loguru import logger
 from pdf2image import convert_from_path
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 
+from pptx_manager.figure import FigureManager
 from pptx_manager.image import ImageManager
 from pptx_manager.models import (
     CreateImageFrameOpts,
@@ -31,6 +32,7 @@ class PPTXManager(
     ShapeManager,
     SlideManager,
     TableManager,
+    FigureManager,
 ):
     def __init__(self, source: str | None, parse_slide_image: bool = False) -> None:
         super().__init__()
@@ -39,12 +41,13 @@ class PPTXManager(
         ShapeManager.__init__(self)
         SlideManager.__init__(self)
         TableManager.__init__(self)
+        FigureManager.__init__(self)
 
         self.pres = Presentation(source)
 
         self.parse_choice = {
             MSO_SHAPE_TYPE.PICTURE: self._parse_image_shape,
-            MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_text_shape,
+            MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_auto_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self._parse_text_shape,
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
         }
@@ -115,14 +118,33 @@ class PPTXManager(
                 if result is not None:
                     self.increase_shape_count(slide_id, 1)
 
+    def _parse_auto_shape(self, slide_id: int, shape_id: int, shape: Shape) -> None:
+        result = self._parse_text_shape(slide_id, shape_id, shape)
+        if result is not None:
+            self.increase_shape_count(slide_id, 1)
+            return
+
+        match shape.auto_shape_type:
+            case MSO_AUTO_SHAPE_TYPE.RECTANGLE:
+                result = self.parse_figure_shape(slide_id, shape_id, shape)
+                if result is not None:
+                    self.increase_shape_count(slide_id, 1)
+                    return
+            case MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE:
+                result = self.parse_figure_shape(slide_id, shape_id, shape)
+                if result is not None:
+                    self.increase_shape_count(slide_id, 1)
+                    return
+
     def get_json_schema(self) -> dict:
         pres_json = {}
         for slide_id in range(1, self.slide_count + 1):
             text_json = self.get_text_frame_json(slide_id)
             image_json = self.get_image_json(slide_id)
             slide_json = self.get_slide_json(slide_id)
+            figure_json = self.get_figure_frame_json(slide_id)
 
-            pres_json[slide_id] = {'text': text_json, 'image': image_json, 'slide': slide_json}
+            pres_json[slide_id] = {'text': text_json, 'image': image_json, 'slide': slide_json, 'figure': figure_json}
 
         return pres_json
 
@@ -141,7 +163,7 @@ class PPTXManager(
                 -   top (int): Позиция рамки текста по оси Y.
                 -   text (str | None, optional): Текстовое содержимое для фигуры.
                 -   color (list[int] | None, optional): Цвет текста в формате RGB кортежа.
-                -   size (int | None, optional): Размер шрифта для текста.
+                -   size (int): Размер шрифта для текста.
                 -   bold (bool | None, optional): Установить текст жирным или нет.
                 -   italic (bool | None, optional): Установить текст курсивом или нет.
                 -   underline (bool | None, optional): Установить подчеркивание текста или нет.
@@ -254,6 +276,7 @@ class PPTXManager(
         logger.debug(
             f'Вызов create_image_shape с параметрами slide_id={slide_id}, opts={opts.model_dump(exclude={"image"})}'
         )
+
         shape, shape_id = self._add_image_on_slide(
             slide_id,
             opts.image,
@@ -277,31 +300,6 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    pr.add_slide_at_position(13, 0, None)
-
-    big_test = dedent("""
-    Видеоаналитика – эффективный и перспективный инструмент для большинства отраслей городского управления. Задача – расширить ее применение. 
-    В сфере безопасности аналитика позволит фиксировать нестандартное поведения отдельных людей, аномальные скопления толп, продолжит улучшать процесс поиска правонарушителей и пропавших граждан. Для расследования и предотвращения преступлений будут развиваться алгоритмы анализа больших данных видеонаблюдения.
-    Новые алгоритмы для анализа объектов городской инфраструктуры помогут выявлять еще больше недочетов в ЖКХ и сфере землепользования: следить за содержанием объектов, территорий, а также мониторить работы по благоустройству и строительству. 
-    Используя данные от ИИ, который будет анализировать пути движения пешеходов и пользователей СИМ, можно будет формировать оптимальные варианты для организации пешеходных переходов и других объектов улично-дорожной сети. 
-    Компьютерное зрение найдет применение и в сфере массового обслуживания. Это мониторинг очередей в МФЦ, объектах здравоохранения и соцсферы.
-    Планируется и развитие инструментов дополнительного анализа видеоданных. Пользователи ЕЦХД смогут переходить в трехмерное видеопространство, как способ более эффективного получения информации о текущей ситуации или навигации по архивным данным в прошлом «внутри» цифрового двойника Москвы. Конвергентная умная разметка видеополя (фиксация на изображении различных объектов и их состояний) позволит быстро находить изображения и увеличит срок хранения полезной информации в архиве.
-    """)
-
-    big_test2 = dedent("""
-    Видеоаналитика – эффективный и перспективный инструмент для большинства отраслей городского управления. Задача – расширить ее применение.
-     В сфере безопасности аналитика позволит фиксировать нестандартное поведения отдельных людей, аномальные скопления толп, продолжит улучшать процесс поиска правонарушителей и пропавших граждан. 
-     Новые алгоритмы для анализа объектов городской инфраструктуры помогут выявлять недочеты в ЖКХ и сфере землепользования.
-    """)
-
-    small_text = 'test'
-
-    test_text = 'Видеоаналитика в городском управлении'
-
-    pr.create_text_shape(
-        13, CreateTextFrameOpts(left=48, top=998, width=213, height=58, text=big_test2, color=(0, 0, 0), size=14)
-    )
-
-    logger.debug(f'13 slide text: {pr.get_text_frame_json(13)}')
+    logger.debug(f'figure = {pr.get_all_figure_frame_json()}')
 
     pr.save('test_create.pptx')

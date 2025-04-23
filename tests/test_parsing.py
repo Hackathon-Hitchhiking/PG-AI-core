@@ -74,12 +74,17 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
 
     # Append minimalistic style and no text requirements to the prompt
     enhanced_prompt = f'{prompt}. The image should be in a minimalistic style and contain no text.'
-
+    # TODO fix here error
+    # ERROR
+    # Error
+    # code: 400 - {'error': {'message': 'Error in request. Please check
+    #                        your input.', 'type': 'invalid_request_error', 'param': None, 'code':
+    #                            None}}
     response = open_sync_client.images.generate(
         model='dall-e-3',
         prompt=enhanced_prompt,
         n=1,
-        size='512x512',
+        size='1024x1024',
         response_format='b64_json',
     )
 
@@ -104,12 +109,18 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     'Analyze the reference presentation to extract its visual style, layout patterns, and content organization.',
     'Identify color schemes, typography, spacing, and recurring design elements.',
     'Determine how new content should be integrated to match the existing style.',
+    # Detect and analyze slide background colors
+    'Detect and analyze the background color of each slide in the reference presentation.',
+    'Consider how background colors affect readability and visual hierarchy.',
+    'Ensure new content maintains appropriate contrast with the background color.',
+    'When recommending new slides, specify appropriate background colors that match the presentation style.',
     # Generate actionable instructions for HeadAgent.
     'For the given user request, generate a detailed list of instructions describing:',
     '- Which slides to add or modify.',
     '- Where to place each content element (text, images, etc.) with coordinates and sizes.',
     '- What content to include (text, images, background, etc.).',
     '- Any specific style requirements (colors, fonts, effects).',
+    '- Background colors for new slides that match the presentation style.',
     'Output only a list of clear, step-by-step instructions for HeadAgent to execute.',
     'Do not perform any slide or image creation yourself.',
     'Ensure instructions are unambiguous and cover all necessary details for implementation.',
@@ -118,14 +129,14 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Images should complement the text content and reinforce key messages',
     '- Consider using images for abstract concepts, data visualization, or illustrative examples',
     '- Maintain visual consistency with the presentation style',
+    '- Ensure images have appropriate contrast with the slide background color',
     'When a slide would benefit from an image, include a "create_image" step for HeadAgent:',
     '- Specify the target slide_id.',
     '- Give a detailed prompt for DALL·E 2 **in English** so the model understands style and subject clearly.',
     '- Include specific visual elements, style, composition, and color palette in the prompt',
     "- Match the prompt's style (palette, mood, level of abstraction) to the reference presentation.",
-    "- Consider the slide's content and purpose when crafting the image prompt",
+    "- Consider the slide's content, purpose, and background color when crafting the image prompt",
     '- Provide exact left, top, width, height (pixels) for the image frame.',
-    '- Example format:  create_image | slide_id=3 | prompt="Flat‑style illustration of a secure server room in blue‑gray palette with servers, network connections, and security elements" | left=100 | top=150 | width=512 | height=512',
     'For technical or data-heavy slides, consider images that:',
     '- Visualize complex concepts or processes',
     '- Illustrate technical components or systems',
@@ -136,7 +147,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Reinforce the key message or theme of the slide',
 ]
 
-style_agent_model = OpenAIChat(id='gpt-4o-mini', client=open_sync_client, async_client=open_async_client)
+style_agent_model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
 pr = PPTXManager(test_pres_path, True)
@@ -181,6 +192,7 @@ big_text_for_new_slide = dedent("""
 """)
 
 big2_text_for_new_slide = dedent("""
+Добавь новый слайд с данным текстом, а так же добавь изображение
 Вызовы и перспективы развития вычислительных мощностей
 Рост цифровизации и внедрение искусственного интеллекта требуют постоянного увеличения производительности вычислительных систем.
 Современные ограничения развития вычислительных мощностей связаны как с техническими (замедление роста тактовой частоты, минимальные размеры транзисторов), так и с рыночными факторами (дефицит чипов, зависимость от глобальных цепочек поставок)
@@ -190,11 +202,32 @@ big2_text_for_new_slide = dedent("""
 """)
 
 user_request = dedent("""
-Добавь на второй слайд информацию о преимуществах искусственного интелекта
+Группы москвичей по отношению к техническим новинкам
+Москвичи-энтузиасты
+• Любят тестировать новые сервисы и технологии
+• Легко разбираются в новых мобильных
+приложениях и сервисах
+• Склонны искать решение проблемы, если
+сталкиваются с трудностями в использовании
+сервиса или технологии. Ими движет любопытство
+Москвичи-последователи
+• Предпочитают использовать новинку после того, как получат
+отзывы и рекомендации от лидеров мнений, друзей или
+знакомых, чье мнение они считают авторитетным
+• Прагматичны: будут пытаться разобраться в приложениях
+или сервисах, если действительно в них нуждаются
+или им интересно. Ими движет умеренное любопытство
+к технологиям и новинкам
+Москвичи-консерваторы
+• Не любят пользоваться новыми сервисами и технологиями
+• Попытаются использовать новое приложение или сервис,
+если возникнет такая необходимость или если будут
+вынуждены их использовать. Однако при столкновении
+с трудностями, скорее откажутся от использования новинок
 """)
 
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {big2_text_for_new_slide}',
     # images=slide_images,
 )
 
@@ -202,14 +235,22 @@ style_output: StyleOutput = message.content
 
 logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), indent=4, ensure_ascii=False)}')
 
-head_agent, text_agent, slide_agent, image_agent = get_head_agent()
+head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent()
 
 text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape]
 slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]
 image_agent.tools = [create_image]
+figure_agent.tools = [
+    pr.update_shape_color,
+    pr.update_shape_position,
+    pr.update_shape_transparency,
+    pr.set_shape_rounding,
+    pr.add_figure_shape,
+]
 
 text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'
 image_agent.instructions[-1] = f'структура картинок в презентации: {pr.get_all_image_json()}'
+figure_agent.instructions[-1] = (f'структура фигур в презентации в презентации: {pr.get_all_figure_frame_json()}',)
 slide_agent.instructions[-1] = f'кол-во слайдов: {pr.get_slide_count()}'
 
 slide_size = pr.get_slide_size_px()
@@ -224,10 +265,18 @@ image_agent.instructions[-2] = (
 slide_agent.instructions[-2] = (
     f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
 )
+figure_agent.instructions[-2] = (
+    f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
+)
 
 head_agent.run(style_output.instructions)
 
 logger.debug(f'metrics = {style_agent.run_response.metrics}')
-logger.debug(f'metrics = {head_agent.run_response.metrics}')
+
+logger.debug(f'head agent metrics = {head_agent.run_response.metrics if head_agent.run_response else 0}')
+logger.debug(f'image agent metrics = {image_agent.run_response.metrics if image_agent.run_response else 0}')
+logger.debug(f'text agent metrics = {text_agent.run_response.metrics if text_agent.run_response else 0}')
+logger.debug(f'slide agent metrics = {slide_agent.run_response.metrics if slide_agent.run_response else 0}')
+logger.debug(f'figure agent metrics = {figure_agent.run_response.metrics if figure_agent.run_response else 0}')
 
 pr.save('style_test.pptx')

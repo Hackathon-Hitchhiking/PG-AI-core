@@ -35,7 +35,8 @@ open_sync_client = OpenAI(
     http_client=http_sync_client,
 )
 
-model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
+model_41 = OpenAIChat(id='gpt-4.1', client=open_sync_client, async_client=open_async_client)
+model_4o = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
 
 
 def get_head_agent():
@@ -59,7 +60,7 @@ def get_head_agent():
             'структура текстовых элементов: ',
         ],
         tools=[],
-        model=model,
+        model=model_41,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -82,7 +83,7 @@ def get_head_agent():
             'кол-во слайдов: ',
         ],
         tools=[],
-        model=model,
+        model=model_4o,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -111,15 +112,49 @@ def get_head_agent():
             'структура картинок в презентации: {}',
         ],
         tools=[],
-        model=model,
+        model=model_4o,
+        show_tool_calls=True,
+        debug_mode=True,
+    )
+
+    figure_agent = Agent(
+        name='Figure Agent',
+        instructions=[
+            'Вы — эксперт по геометрическим фигурам в PowerPoint, специализирующийся на создании и модификации фигур.',
+            'Основные задачи:',
+            '- Создание новых фигур на слайдах с точным позиционированием',
+            '- Изменение цвета, прозрачности и положения существующих фигур',
+            '- Настройка скругления углов для поддерживаемых фигур',
+            'Протокол работы:',
+            '1. Получить задание с указанием: [Слайд][Фигура][Действие][Параметры]',
+            '2. Проверить корректность slide_id и shape_id перед любой операцией',
+            '3. Выполнить запрошенное действие с учетом следующих правил:',
+            '   - При создании фигуры (add_figure_shape) обязательно указывать тип фигуры, координаты и размеры',
+            '   - При изменении цвета (update_shape_color) использовать RGB-формат (0-255)',
+            '   - При изменении положения (update_shape_position) учитывать размеры слайда',
+            '   - При настройке прозрачности (update_shape_transparency) использовать значения от 0.0 до 1.0',
+            '   - При настройке скругления (set_shape_rounding) использовать значения от 0.0 до 1.0',
+            '4. Подтвердить выполнение операции и предоставить отчет',
+            'Важные правила:',
+            '- Всегда проверяйте существование фигуры перед её модификацией',
+            '- Используйте координаты в пикселях для точного позиционирования',
+            '- Не изменяйте фигуры, которые не были явно указаны в запросе',
+            '- Если пользователь не указал какие-то параметры, используйте разумные значения по умолчанию',
+            '- Никогда не уточняйте у пользователя, что нужно делать — действуйте на основе имеющейся информации',
+            '- При работе с цветами используйте RGB-формат (например, красный: 255,0,0)',
+            'Размер слайдов в пикселях {}, используй координаты, чтобы вставлять объекты.',
+            'структура фигур в презентации в презентации: {}',
+        ],
+        tools=[],
+        model=model_4o,
         show_tool_calls=True,
         debug_mode=True,
     )
 
     head_agent = Team(
-        mode='route',
-        members=[text_agent, slide_agent, image_agent],
-        model=model,
+        mode='coordinate',
+        members=[text_agent, slide_agent, image_agent, figure_agent],
+        model=model_4o,
         instructions=[
             'Вы главный по управлению презентациями: координируешь агентов для правок в PowerPoint',
             'Обязанности:',
@@ -144,4 +179,4 @@ def get_head_agent():
         debug_mode=True,
     )
 
-    return head_agent, text_agent, slide_agent, image_agent
+    return head_agent, text_agent, slide_agent, image_agent, figure_agent
