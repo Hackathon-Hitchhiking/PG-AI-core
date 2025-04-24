@@ -8,7 +8,7 @@ from textwrap import dedent
 from loguru import logger
 from pdf2image import convert_from_path
 from pptx import Presentation
-from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE, MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 
 from pptx_manager.figure import FigureManager
@@ -347,18 +347,18 @@ class PPTXManager(
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
 
-    rect1 = pr.add_figure_shape(
-        2,
-        MSO_SHAPE.ROUNDED_RECTANGLE,
-        300,
-        500,
-        100,
-        500,
-        color=(255, 128, 255),
-        line_color=(255, 0, 255),
-        line_width=3.0,
-        rounding=0.1,
-    )
+    # rect1 = pr.add_figure_shape(
+    #     2,
+    #     MSO_SHAPE.ROUNDED_RECTANGLE,
+    #     300,
+    #     500,
+    #     100,
+    #     500,
+    #     color=(255, 128, 255),
+    #     line_color=(255, 0, 255),
+    #     line_width=3.0,
+    #     rounding=0.1,
+    # )
     ## ДЛЯ КИРИЛЛА [update_shape_color, update_shape_position, update_shape_transparency, set_shape_rounding]
 
     # pr.update_shape_color(3, 1, color=[255, 255, 0])

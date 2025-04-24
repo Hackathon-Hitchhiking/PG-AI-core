@@ -60,7 +60,7 @@ def get_head_agent():
             'структура текстовых элементов: ',
         ],
         tools=[],
-        model=model_41,
+        model=model_4o,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -83,7 +83,7 @@ def get_head_agent():
             'кол-во слайдов: ',
         ],
         tools=[],
-        model=model_4o,
+        model=model_41,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -112,7 +112,7 @@ def get_head_agent():
             'структура картинок в презентации: {}',
         ],
         tools=[],
-        model=model_4o,
+        model=model_41,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -146,7 +146,7 @@ def get_head_agent():
             'структура фигур в презентации в презентации: {}',
         ],
         tools=[],
-        model=model_4o,
+        model=model_41,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -154,7 +154,7 @@ def get_head_agent():
     head_agent = Team(
         mode='coordinate',
         members=[text_agent, slide_agent, image_agent, figure_agent],
-        model=model_4o,
+        model=model_41,
         instructions=[
             'Вы главный по управлению презентациями: координируешь агентов для правок в PowerPoint',
             'Обязанности:',

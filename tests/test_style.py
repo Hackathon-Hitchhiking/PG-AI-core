@@ -16,7 +16,7 @@ from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 
 from pptx_manager.main import PPTXManager
-from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts
+from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts, TextFrameOpts
 from tests.agno_manager import get_head_agent
 
 
@@ -119,7 +119,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Which slides to add or modify.',
     '- Where to place each content element (text, images, figures, etc.) with coordinates and sizes.',
     '- What content to include (text, images, figures, background, etc.).',
-    '- Any specific style requirements (colors, fonts, effects).',
+    f'- Any specific style requirements ({TextFrameOpts.model_fields.keys()}).',
     '- Background colors for new slides that match the presentation style.',
     'Output only a list of clear, step-by-step instructions for HeadAgent to execute.',
     'Do not perform any slide or image creation yourself.',
@@ -135,6 +135,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Give a detailed prompt for DALL·E 2 **in English** so the model understands style and subject clearly.',
     '- Include specific visual elements, style, composition, and color palette in the prompt',
     "- Match the prompt's style (palette, mood, level of abstraction) to the reference presentation.",
+    "- When generating the prompt, explicitly include instructions to use colors that comply with the presentation's color scheme",
     "- Consider the slide's content, purpose, and background color when crafting the image prompt",
     '- Provide exact left, top, width, height (pixels) for the image frame.',
     'For technical or data-heavy slides, consider images that:',
@@ -154,12 +155,20 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Specify the target slide_id',
     '- Indicate the shape type (rectangle, rounded rectangle, oval, etc.)',
     '- Provide exact left, top, width, height (pixels) for the shape',
-    '- Specify fill color, line color, line width, and transparency as needed',
+    '- Specify fill color, line color, line width, and transparency, rounding, rotation as needed',
     '- For rounded rectangles, specify the rounding value (0.0-1.0)',
     "- Consider how shapes can be used to create visual structure and guide the viewer's attention",
+    # Font and color copying instructions
+    'Always copy and use colors and fonts from the template presentation:',
+    '- Analyze and extract the exact font names, sizes, and styles used in the template',
+    '- Identify and use the color palette from the template (background colors, text colors, accent colors)',
+    '- When specifying text properties, always indicate the exact font name and color copied from the template',
+    '- For each text element, clearly specify which font and color from the template you are using',
+    '- Maintain consistency with the template by using the same font hierarchy (headings, body text, etc.)',
+    '- Ensure all new content matches the visual style of the template presentation',
 ]
 
-style_agent_model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
+style_agent_model = OpenAIChat(id='gpt-4.1-mini', client=open_sync_client, async_client=open_async_client)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
 pr = PPTXManager(test_pres_path, True)
@@ -241,8 +250,9 @@ user_request = dedent("""
 delete_request = dedent("""
 Удали слайд 6 и на первом слайде удали весь текст и оставь только заголовок.
 """)
+
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {delete_request}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {big2_text_for_new_slide}',
     # images=slide_images,
 )
 
