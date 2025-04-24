@@ -340,6 +340,35 @@ class PPTXManager(
 
         return f'Создана фигура с изображением на слайде {slide_id} (shape_id: {shape_id}) с параметрами: позиция ({opts.left}, {opts.top}), размер ({opts.width}x{opts.height})'
 
+    def copy_image_shape(self, slide_id_from: int, shape_id: int, slide_id_to: int) -> str:
+        """
+        Копирует изображение с одного слайда на другой.
+
+        Args:
+            slide_id_from (int): ID исходного слайда.
+            shape_id (int): ID фигуры с изображением на исходном слайде.
+            slide_id_to (int): ID целевого слайда.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        shape = self._get_image_frame_shape(slide_id_from, shape_id)
+        if shape is None:
+            return f'Фигура с изображением (ID {shape_id}) не найдена на слайде {slide_id_from}.'
+
+        if shape.blob is None:
+            return f'Фигура с изображением (ID {shape_id}) не содержит данных изображения.'
+
+        opts = CreateImageFrameOpts(
+            left=int(shape.left),
+            top=int(shape.top),
+            width=int(shape.width),
+            height=int(shape.height),
+            image=shape.blob,
+        )
+        result = self.create_image_shape(slide_id_to, opts)
+        return f'Изображение (shape_id={shape_id}) успешно скопировано со слайда {slide_id_from} на слайд {slide_id_to}. {result}'
+
     def save(self, path: str) -> None:
         self.pres.save(path)
 
