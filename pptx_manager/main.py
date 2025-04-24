@@ -152,7 +152,7 @@ class PPTXManager(
         """
         Создает новую текстовую фигуру на указанном слайде с заданными параметрами.
 
-        Эта функция добавляет текстовую фигуру в презентацию и применяет указанные параметры форматирования, включая позицию, размер, текстовое содержание и стиль текста.
+        Эта функция добавляет текстовую фигуру в презентацию и применяет указанные параметры форматирования, включая позицию, размер, текстовое содержание, стиль текста и выравнивание.
 
         Args:
             slide_id (int): ID слайда, на котором будет создана текстовая фигура.
@@ -167,6 +167,8 @@ class PPTXManager(
                 -   bold (bool | None, optional): Установить текст жирным или нет.
                 -   italic (bool | None, optional): Установить текст курсивом или нет.
                 -   underline (bool | None, optional): Установить подчеркивание текста или нет.
+                -   align (str | None, optional): Горизонтальное выравнивание текста ("left", "center", "right", "justify", "distribute").
+                -   vertical_align (str | None, optional): Вертикальное выравнивание текста ("top", "middle", "bottom").
 
         Returns:
             str: Сообщение о результате операции с подробным описанием созданной фигуры.
@@ -196,6 +198,8 @@ class PPTXManager(
                 italic=opts.italic,
                 underline=opts.underline,
                 font_name=opts.font_name,
+                align=opts.align,
+                vertical_align=opts.vertical_align,
             ),
         )
 
@@ -254,6 +258,49 @@ class PPTXManager(
             return f'Неизвестный идентификатор фигуры с изображением: {shape_id} на слайде {slide_id}'
 
         return f'Фигура с изображением (ID {shape_id}) успешно удалена со слайда {slide_id}'
+
+    def delete_figure_shape(self, slide_id: int, shape_id: int) -> str:
+        """
+        Удаляет геометрическую фигуру (figure) с указанного слайда.
+
+        Args:
+            slide_id (int): ID слайда, содержащего фигуру для удаления.
+            shape_id (int): ID фигуры для удаления.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        logger.debug(f'Вызов delete_figure_shape с параметрами slide_id={slide_id}, shape_id={shape_id}')
+        shape = self._get_shape(slide_id, shape_id)
+        self._delete_shape(slide_id, shape_id)
+
+        try:
+            el = shape.shape_manager.element
+            parent = el.getparent()
+            parent.remove(el)
+        except AttributeError:
+            logger.warning(f'Фигура с shape_id={shape_id} не найдена в shape_manager')
+            return f'Неизвестный идентификатор фигуры: {shape_id} на слайде {slide_id}'
+
+        return f'Геометрическая фигура с ID {shape_id} успешно удалена со слайда {slide_id}'
+
+    def delete_slide(self, slide_id: int) -> str:
+        """
+        Удаляет слайд из презентации.
+
+        Args:
+            slide_id (int): ID слайда для удаления.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        logger.debug(f'Вызов delete_slide с параметром slide_id={slide_id}')
+        try:
+            self._delete_slide(slide_id)
+        except Exception as e:
+            logger.warning(f'Ошибка при удалении слайда {slide_id}: {e}')
+            return f'Ошибка при удалении слайда {slide_id}: {e}'
+        return f'Слайд с ID {slide_id} успешно удалён'
 
     def create_image_shape(self, slide_id: int, opts: CreateImageFrameOpts) -> str:
         """

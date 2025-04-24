@@ -1,3 +1,4 @@
+from pptx.enum.text import MSO_VERTICAL_ANCHOR, PP_ALIGN
 from pptx.shapes.base import BaseShape
 from pptx.slide import Slide
 from pptx.util import Emu, Inches, Pt
@@ -66,3 +67,44 @@ class CustomList:
 
     def __repr__(self):
         return repr(self._data)
+
+
+_TEXT_ALIGN_MAP = {
+    'left': PP_ALIGN.LEFT,
+    'center': PP_ALIGN.CENTER,
+    'right': PP_ALIGN.RIGHT,
+    'justify': PP_ALIGN.JUSTIFY,
+    'distribute': PP_ALIGN.DISTRIBUTE,
+}
+_TEXT_ALIGN_MAP_REV = {v: k for k, v in _TEXT_ALIGN_MAP.items()}
+
+_TEXT_VERTICAL_ALIGN_MAP = {
+    'top': MSO_VERTICAL_ANCHOR.TOP,
+    'middle': MSO_VERTICAL_ANCHOR.MIDDLE,
+    'bottom': MSO_VERTICAL_ANCHOR.BOTTOM,
+}
+_TEXT_VERTICAL_ALIGN_MAP_REV = {v: k for k, v in _TEXT_VERTICAL_ALIGN_MAP.items()}
+
+
+def parse_text_align(value: str | None) -> PP_ALIGN | None:
+    if value is None:
+        return None
+    return _TEXT_ALIGN_MAP.get(value.lower())
+
+
+def parse_text_vertical_align(value: str | None) -> MSO_VERTICAL_ANCHOR | None:
+    if value is None:
+        return None
+    return _TEXT_VERTICAL_ALIGN_MAP.get(value.lower())
+
+
+def text_align_to_str(align: PP_ALIGN | None) -> str | None:
+    if align is None:
+        return None
+    return _TEXT_ALIGN_MAP_REV.get(align)
+
+
+def text_vertical_align_to_str(valign: MSO_VERTICAL_ANCHOR | None) -> str | None:
+    if valign is None:
+        return None
+    return _TEXT_VERTICAL_ALIGN_MAP_REV.get(valign)

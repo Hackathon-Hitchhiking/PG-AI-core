@@ -89,7 +89,8 @@ class SlideManager:
             ValueError: Если презентация не загружена
         """
         if not self.pres:
-            raise ValueError('Презентация не загружена. Сначала вызовите load_presentation()')
+            msg = 'Презентация не загружена. Сначала вызовите load_presentation()'
+            raise ValueError(msg)
 
         width_emu = self.pres.slide_width
         height_emu = self.pres.slide_height
@@ -132,11 +133,13 @@ class SlideManager:
             raise ValueError(msg)
 
         if not all(0 <= c <= 255 for c in color_rgb):
-            raise ValueError('Значения цвета должны быть в диапазоне 0-255')
+            msg = 'Значения цвета должны быть в диапазоне 0-255'
+            raise ValueError(msg)
 
         slides = self.pres.slides
         if slide_id < 1 or slide_id > len(slides):
-            raise ValueError(f'Недопустимый номер слайда: {slide_id}')
+            msg = f'Недопустимый номер слайда: {slide_id}'
+            raise ValueError(msg)
 
         slide = slides[slide_id - 1]
         background = slide.background
@@ -229,7 +232,35 @@ class SlideManager:
 
         return 'Success'
 
-    def add_slide_at_position(self, position: int, layout_index: int = 0, background_color=None) -> str:
+    def _delete_slide(self, slide_id: int) -> None:
+        """
+        Удаляет слайд из презентации и из метаданных.
+        """
+        if not self.pres:
+            msg = 'Презентация не загружена.'
+            raise ValueError(msg)
+
+        slides = self.pres.slides
+        if slide_id < 1 or slide_id > len(slides):
+            msg = f'Недопустимый номер слайда: {slide_id}'
+            raise ValueError(msg)
+
+        # Удаляем слайд из презентации
+        slide = slides[slide_id - 1]
+        slide_element = slide._element
+        slide_id_lst = slides._sldIdLst
+        for idx, sldId in enumerate(slide_id_lst):
+            if slides[idx]._element == slide_element:
+                del slide_id_lst[idx]
+                break
+
+        # Удаляем метаданные
+        if slide_id in self.slide_metadata:
+            del self.slide_metadata[slide_id]
+
+    def add_slide_at_position(
+        self, position: int, layout_index: int = 0, background_color: list[int] | None = None
+    ) -> str:
         """
         Вставляет новый слайд в указанную позицию с заданным макетом и заголовком.
 

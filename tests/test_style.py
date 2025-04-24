@@ -238,8 +238,11 @@ user_request = dedent("""
 с трудностями, скорее откажутся от использования новинок
 """)
 
+delete_request = dedent("""
+Удали слайд 6 и на первом слайде удали весь текст и оставь только заголовок.
+""")
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {big2_text_for_new_slide}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {delete_request}',
     # images=slide_images,
 )
 
@@ -250,14 +253,15 @@ logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), 
 head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent()
 
 text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape]
-slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]
-image_agent.tools = [create_image]
+slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides, pr.delete_slide]
+image_agent.tools = [create_image, pr.delete_image_shape]
 figure_agent.tools = [
     pr.update_shape_color,
     pr.update_shape_position,
     pr.update_shape_transparency,
     pr.set_shape_rounding,
     pr.add_figure_shape,
+    pr.delete_figure_shape,
 ]
 
 text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'

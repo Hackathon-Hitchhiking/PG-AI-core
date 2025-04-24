@@ -18,7 +18,10 @@ from pptx.text.text import Font
 from pptx.util import Pt
 
 from pptx_manager import utils
-from pptx_manager.models import TextFrameShape, UpdateTextFrameOpts
+from pptx_manager.models import (
+    TextFrameShape,
+    UpdateTextFrameOpts,
+)
 from pptx_manager.utils import get_slide_from_shape, hex_to_rgb
 
 
@@ -103,9 +106,10 @@ class TextFrameManager:
         return font_size
 
     def update_text_frame_shape(self, slide_id: int, shape_id: int | None, opts: UpdateTextFrameOpts | dict):
-        """Updates the properties of a text frame shape in a specific slide.
+        """
+        Updates the properties of a text frame shape in a specific slide.
 
-        Modifies various text attributes, including content, color, size, and style (bold, italic, underline).
+        Modifies various text attributes, including content, color, size, style, and alignment.
 
         Args:
             slide_id (int): The ID of the slide containing the text frame shape to be updated.
@@ -122,6 +126,8 @@ class TextFrameManager:
                 -   italic (bool | None, optional): Whether to set the text to italic.
                 -   underline (bool | None, optional): Whether to underline the text.
                 -   font_name(str | None, optional): The name of the font to be updated.
+                -   align (str | None, optional): Horizontal alignment ("left", "center", "right", "justify", "distribute").
+                -   vertical_align (str | None, optional): Vertical alignment ("top", "middle", "bottom").
 
         Notes:
             -   Only the attributes specified in `opts` will be updated.
@@ -181,6 +187,13 @@ class TextFrameManager:
             if opts.font_name is not None:
                 frame.font_manager.name = opts.font_name
                 frame.font_name = opts.font_name
+
+            if opts.align is not None:
+                frame.text_manager.paragraphs[0].alignment = utils.parse_text_align(opts.align)
+                frame.align = opts.align
+            if opts.vertical_align is not None:
+                frame.text_manager.vertical_anchor = utils.parse_text_vertical_align(opts.vertical_align)
+                frame.vertical_align = opts.vertical_align
 
         return 'Done'
 
@@ -264,6 +277,12 @@ class TextFrameManager:
             bold = text_frame_font.bold
             italic = text_frame_font.italic
             underline = text_frame_font.underline
+            align = utils.text_align_to_str(text_frame.paragraphs[0].alignment) if text_frame.paragraphs else None
+            vertical_align = (
+                utils.text_vertical_align_to_str(text_frame.vertical_anchor)
+                if hasattr(text_frame, 'vertical_anchor')
+                else None
+            )
 
             text = merged_text
 
@@ -287,6 +306,8 @@ class TextFrameManager:
             text_manager=text_frame,
             font_manager=text_frame_font,
             shape_manager=shape,
+            align=align,
+            vertical_align=vertical_align,
         )
 
         if slide_id < 0:

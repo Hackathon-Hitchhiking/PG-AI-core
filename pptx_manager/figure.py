@@ -809,6 +809,16 @@ class FigureManager:
                 return shape
         return None
 
+    def _delete_shape(self, slide_id: int, shape_id: int) -> None:
+        """
+        Удаляет фигуру из внутренней коллекции по slide_id и shape_id.
+        """
+        frames = self.figure_shapes[slide_id]
+        for index, frame in enumerate(frames):
+            if frame.shape_id == shape_id:
+                del frames[index]
+                break
+
     def _get_shape(self, slide_id: int, shape_id: int) -> GeometricShape | None:
         """
         Получает фигуру по ее ID с определенного слайда.

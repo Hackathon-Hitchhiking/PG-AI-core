@@ -7,11 +7,23 @@ from pptx.text.text import Font, TextFrame
 from pydantic import BaseModel
 
 
+class TextAlign(str, Enum):
+    LEFT = 'left'
+    CENTER = 'center'
+    RIGHT = 'right'
+    JUSTIFY = 'justify'
+    DISTRIBUTE = 'distribute'
+
+
+class TextVerticalAlign(str, Enum):
+    TOP = 'top'
+    MIDDLE = 'middle'
+    BOTTOM = 'bottom'
+
+
 class TextFrameShape(BaseModel):
     shape_id: int
-
     text: str
-
     font_name: str | None = None
     font_size: float | None = None
     bold: bool | None = None
@@ -19,13 +31,12 @@ class TextFrameShape(BaseModel):
     underline: bool | None = None
     strike: bool | None = None
     color: tuple | None = None
-
     left: float | None = None
     top: float | None = None
-
     width: int | None = None
     height: int | None = None
-
+    align: TextAlign | None = None
+    vertical_align: TextVerticalAlign | None = None
     text_manager: TextFrame
     font_manager: Font
     shape_manager: Shape
@@ -42,12 +53,13 @@ class TextFrameOpts(BaseModel):
     bold: bool | None = None
     italic: bool | None = None
     underline: bool | None = None
+    align: TextAlign | None = None
+    vertical_align: TextVerticalAlign | None = None
 
 
 class UpdateTextFrameOpts(TextFrameOpts):
     left: int | None = None
     top: int | None = None
-
     width: int | None = None
     height: int | None = None
 
@@ -55,7 +67,6 @@ class UpdateTextFrameOpts(TextFrameOpts):
 class CreateTextFrameOpts(TextFrameOpts):
     left: int
     top: int
-
     width: int
     height: int
 
