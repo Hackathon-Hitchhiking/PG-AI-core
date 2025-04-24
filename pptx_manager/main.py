@@ -8,7 +8,7 @@ from textwrap import dedent
 from loguru import logger
 from pdf2image import convert_from_path
 from pptx import Presentation
-from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE, MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 
 from pptx_manager.figure import FigureManager
@@ -126,12 +126,12 @@ class PPTXManager(
 
         match shape.auto_shape_type:
             case MSO_AUTO_SHAPE_TYPE.RECTANGLE:
-                result = self.parse_figure_shape(slide_id, shape_id, shape)
+                result = self._parse_figure_shape(slide_id, shape_id, shape)
                 if result is not None:
                     self.increase_shape_count(slide_id, 1)
                     return
             case MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE:
-                result = self.parse_figure_shape(slide_id, shape_id, shape)
+                result = self._parse_figure_shape(slide_id, shape_id, shape)
                 if result is not None:
                     self.increase_shape_count(slide_id, 1)
                     return
@@ -299,6 +299,33 @@ class PPTXManager(
 
 if __name__ == '__main__':
     pr = PPTXManager('../test_data/test_dit.pptx')
+
+    rect1 = pr.add_figure_shape(
+        2,
+        MSO_SHAPE.ROUNDED_RECTANGLE,
+        300,
+        500,
+        100,
+        500,
+        color=(255, 128, 255),
+        line_color=(255, 0, 255),
+        line_width=3.0,
+        rounding=0.1,
+    )
+    ## ДЛЯ КИРИЛЛА [update_shape_color, update_shape_position, update_shape_transparency, set_shape_rounding]
+
+    # pr.update_shape_color(3, 1, color=[255, 255, 0])
+    # pr.update_shape_line(3, rect1.shape_id, color=(255, 0, 0), width=3.0)
+    # pr.update_shape_transparency(3, 1, transparency=1)
+    # pr.update_shape_transparency(3, rect1.shape_id, transparency=0.2)
+    # pr.update_shape_rotation(2, 1, rotation=45.0)
+    # pr.update_shape_rotation(2, 2, rotation=45.0)
+    # pr.update_shape_rotation(2, 3, rotation=45.0)
+    # pr.update_shape_rotation(2, 4, rotation=45.0)
+    #
+    # pr.set_shape_rounding(3, 2, 0.5)
+    # pr.set_shape_rounding(3, 1, 1)
+    # pr.set_shape_rounding(3, 3, 0.1)
 
     logger.debug(f'figure = {pr.get_all_figure_frame_json()}')
 

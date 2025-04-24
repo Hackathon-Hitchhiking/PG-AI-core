@@ -117,8 +117,8 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     # Generate actionable instructions for HeadAgent.
     'For the given user request, generate a detailed list of instructions describing:',
     '- Which slides to add or modify.',
-    '- Where to place each content element (text, images, etc.) with coordinates and sizes.',
-    '- What content to include (text, images, background, etc.).',
+    '- Where to place each content element (text, images, figures, etc.) with coordinates and sizes.',
+    '- What content to include (text, images, figures, background, etc.).',
     '- Any specific style requirements (colors, fonts, effects).',
     '- Background colors for new slides that match the presentation style.',
     'Output only a list of clear, step-by-step instructions for HeadAgent to execute.',
@@ -145,6 +145,18 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Evoke the right emotional response',
     '- Use metaphors or symbols to represent abstract ideas',
     '- Reinforce the key message or theme of the slide',
+    # Figure creation instructions
+    'You can also recommend adding geometric shapes and figures to enhance slide design and visual organization:',
+    '- Consider using shapes to highlight key information, create visual hierarchy, or organize content',
+    '- Shapes can be used for backgrounds, borders, dividers, callouts, or decorative elements',
+    '- Ensure shapes match the presentation style and color scheme',
+    'When a slide would benefit from shapes or figures, include a "add_figure_shape" step for HeadAgent:',
+    '- Specify the target slide_id',
+    '- Indicate the shape type (rectangle, rounded rectangle, oval, etc.)',
+    '- Provide exact left, top, width, height (pixels) for the shape',
+    '- Specify fill color, line color, line width, and transparency as needed',
+    '- For rounded rectangles, specify the rounding value (0.0-1.0)',
+    "- Consider how shapes can be used to create visual structure and guide the viewer's attention",
 ]
 
 style_agent_model = OpenAIChat(id='gpt-4o', client=open_sync_client, async_client=open_async_client)
