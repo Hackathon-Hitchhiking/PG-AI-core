@@ -57,28 +57,6 @@ def emu_to_px(emu: int) -> float:
     return emu / EMUS_PER_PIXEL
 
 
-def rgb_to_tuple(rgb_color):
-    try:
-        if rgb_color is None:
-            return (0, 0, 0)
-
-        if hasattr(rgb_color, 'rgb') and rgb_color.rgb is not None:
-            if isinstance(rgb_color.rgb, int):
-                rgb_hex = rgb_color.rgb
-                r = (rgb_hex >> 16) & 255
-                g = (rgb_hex >> 8) & 255
-                b = rgb_hex & 255
-                return (r, g, b)
-            if hasattr(rgb_color, 'r') and hasattr(rgb_color, 'g') and hasattr(rgb_color, 'b'):
-                return (rgb_color.r, rgb_color.g, rgb_color.b)
-
-        if hasattr(rgb_color, 'theme_color'):
-            return (255, 252, 255)
-    except (AttributeError, TypeError) as e:
-        logger.debug(f'Ошибка при преобразовании цвета: {e}')
-
-    return (0, 0, 0)
-
 
 class FigureManager:
     def __init__(self):
@@ -120,7 +98,7 @@ class FigureManager:
         top: float,
         width: float,
         height: float,
-        color: list[int] = (255, 255, 255),
+        color: list[int] = None,
         line_color: list[int] = (0, 0, 0),
         line_width: float = 1.0,
         rounding: float = 0.0,
@@ -141,7 +119,7 @@ class FigureManager:
             top (float): Позиция верхнего края фигуры в пикселях.
             width (float): Ширина фигуры в пикселях.
             height (float): Высота фигуры в пикселях.
-            color (list[int]): Цвет заливки фигуры в формате RGB (по умолчанию белый: (255, 255, 255)).
+            color (list[int]): Цвет заливки фигуры в формате RGB (по умолчанию белый: [255, 255, 255]).
             line_color (list[int]): Цвет контура фигуры в формате RGB (по умолчанию черный: (0, 0, 0)).
             line_width (float): Толщина контура фигуры в пикселях (по умолчанию 1.0).
             rounding (float): Значение закругления углов прямоугольника от 0.0 до 1.0 (по умолчанию 0.0).
@@ -155,6 +133,9 @@ class FigureManager:
         Вызывает:
             ValueError: Если презентация не загружена или не создана, или если указан неверный ID слайда.
         """
+
+        if color is None:
+            color = [255, 255, 255]
 
         logger.debug(
             f'add_figure_shape calls with parameters: {slide_id, shape_type, left, top, width, height, color, line_color, line_width, rounding, transparency, rotation, adjustments}'
@@ -741,17 +722,18 @@ class FigureManager:
 
             fill_color = [0, 0, 0]
             try:
-                if hasattr(shape.fill, 'fore_color') and hasattr(shape.fill, 'type') and shape.fill.type != 0:
-                    fill_color = rgb_to_tuple(shape.fill.fore_color)
+                if hasattr(shape.fill, 'fore_color')  and shape.fill.type != 0:
+                    fill_color = tuple(shape.fill.fore_color.rgb)
+                    #print(fill_color)
             except Exception:
                 pass
 
             line_color = (0, 0, 0)
             try:
                 if hasattr(shape.line, 'color') and shape.line.color is not None:
-                    line_color = rgb_to_tuple(shape.line.color)
+                    line_color = tuple(shape.line.color.rgb) ## CHANGE
             except Exception as e:
-                logger.debug(f'Не удалось получить цвет линии: {e}')
+                pass
 
             line_width = 1.0
             try:
@@ -918,7 +900,6 @@ class FigureManager:
 
         if 'rounding' in kwargs and kwargs['rounding'] is not None:
             rounding = kwargs['rounding']
-            print(rounding)
             try:
                 if hasattr(ppt_shape, 'adjustment_values') and len(ppt_shape.adjustment_values) > 0:
                     adj_value = int(rounding * 100000)
