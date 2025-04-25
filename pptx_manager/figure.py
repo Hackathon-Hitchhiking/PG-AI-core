@@ -57,7 +57,6 @@ def emu_to_px(emu: int) -> float:
     return emu / EMUS_PER_PIXEL
 
 
-
 class FigureManager:
     def __init__(self):
         self.pres = None
@@ -722,17 +721,17 @@ class FigureManager:
 
             fill_color = [0, 0, 0]
             try:
-                if hasattr(shape.fill, 'fore_color')  and shape.fill.type != 0:
+                if hasattr(shape.fill, 'fore_color') and shape.fill.type != 0:
                     fill_color = tuple(shape.fill.fore_color.rgb)
-                    #print(fill_color)
+                    # print(fill_color)
             except Exception:
                 pass
 
             line_color = (0, 0, 0)
             try:
                 if hasattr(shape.line, 'color') and shape.line.color is not None:
-                    line_color = tuple(shape.line.color.rgb) ## CHANGE
-            except Exception as e:
+                    line_color = tuple(shape.line.color.rgb)  ## CHANGE
+            except Exception:
                 pass
 
             line_width = 1.0
