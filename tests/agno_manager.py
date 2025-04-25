@@ -61,6 +61,8 @@ def get_head_agent():
         ],
         tools=[],
         model=model_4o,
+        monitoring=False,
+        telemetry=False,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -84,6 +86,8 @@ def get_head_agent():
         ],
         tools=[],
         model=model_41,
+        monitoring=False,
+        telemetry=False,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -113,6 +117,8 @@ def get_head_agent():
         ],
         tools=[],
         model=model_41,
+        monitoring=False,
+        telemetry=False,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -147,6 +153,8 @@ def get_head_agent():
         ],
         tools=[],
         model=model_41,
+        monitoring=False,
+        telemetry=False,
         show_tool_calls=True,
         debug_mode=True,
     )
@@ -175,6 +183,8 @@ def get_head_agent():
             'Не надо выдумывать агентов, всегда вызывай только тех агентов, которые указаны у тебя в промте',
         ],
         show_tool_calls=True,
+        monitoring=False,
+        telemetry=False,
         show_members_responses=True,
         debug_mode=True,
     )

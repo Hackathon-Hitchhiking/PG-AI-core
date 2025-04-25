@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 
@@ -374,6 +375,6 @@ if __name__ == '__main__':
     # pr.set_shape_rounding(3, 1, 1)
     # pr.set_shape_rounding(3, 3, 0.1)
 
-    logger.debug(f'figure = {pr.get_all_figure_frame_json()}')
+    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(4), indent=4)}')
 
     pr.save('test_create.pptx')

@@ -155,6 +155,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Specify the target slide_id',
     '- Indicate the shape type (rectangle, rounded rectangle, oval, etc.)',
     '- Provide exact left, top, width, height (pixels) for the shape',
+    '- Always specify the position (left, top) and dimensions (height, width) of each figure',
     '- Specify fill color, line color, line width, and transparency, rounding, rotation as needed',
     '- For rounded rectangles, specify the rounding value (0.0-1.0)',
     "- Consider how shapes can be used to create visual structure and guide the viewer's attention",
@@ -183,6 +184,8 @@ style_agent = Agent(
     ],
     model=style_agent_model,
     response_model=StyleOutput,
+    monitoring=False,
+    telemetry=False,
     debug_mode=True,
 )
 
@@ -200,12 +203,9 @@ text_for_new_slide = dedent("""
 
 big_text_for_new_slide = dedent("""
 Факторы, которые влияют на рынок:
-
 Международная напряженность, которая может нарушать мировые цепочки поставок (более 50% рынка сосредоточено
 в странах Азии)
-
 Рост спроса на чипы, который определяется не только ростом спроса на высокопроизводительные вычислительные устройства, но и ростом спроса на потребительскую электронику (смартфоны, ПК и др.)
-
 Высокая стоимость развития локального производства (выражается не только в капитальных затратах
 на строительство, закупку оборудования и технологии,
 но и в качестве подготовки кадров, задействованных
@@ -213,13 +213,12 @@ big_text_for_new_slide = dedent("""
 """)
 
 big2_text_for_new_slide = dedent("""
-Добавь новый слайд с данным текстом, а так же добавь изображение
-Вызовы и перспективы развития вычислительных мощностей
-Рост цифровизации и внедрение искусственного интеллекта требуют постоянного увеличения производительности вычислительных систем.
-Современные ограничения развития вычислительных мощностей связаны как с техническими (замедление роста тактовой частоты, минимальные размеры транзисторов), так и с рыночными факторами (дефицит чипов, зависимость от глобальных цепочек поставок)
-Для преодоления этих вызовов активно развиваются новые технологии: квантовые вычисления, нейроморфные и тензорные процессоры, а также программно-определяемые решения (виртуализация, дезагрегация памяти)
-В России и мире наблюдается тенденция к диверсификации аппаратных платформ и поиску альтернативных способов реализации вычислений, что позволяет повысить устойчивость и гибкость цифровой инфраструктуры
-Инвестиции в развитие новых вычислительных архитектур и отечественных разработок становятся ключевым фактором технологической независимости и лидерства в цифровой экономике
+Добавь новый слайд с данным текстом и добавь картинку
+Отличительные особенности
+возможность интеграции с ЕСИА для авторизации и соблюдения мер ИБ и 152-ФЗ;
+гибкая настройка курсов для разных потребностей и уровня подготовки;
+возможность интеграции с внешними системами для обогащения данными и для встраивания в различные бизнес-процессы, например интеграция с системами мониторинга;
+безопасность – решение состоит в Реестре Отечественного ПО, стек соответствует требованиям ИБ.
 """)
 
 user_request = dedent("""
@@ -262,8 +261,8 @@ logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), 
 
 head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent()
 
-text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape, pr.delete_text_shape]
-slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides, pr.delete_slide]
+text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape]  # pr.delete_text_shape
+slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]  # pr.delete_slide
 image_agent.tools = [create_image, pr.delete_image_shape]
 figure_agent.tools = [
     pr.update_shape_color,

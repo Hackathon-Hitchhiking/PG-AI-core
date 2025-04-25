@@ -739,7 +739,7 @@ class FigureManager:
             width = emu_to_px(shape.width)
             height = emu_to_px(shape.height)
 
-            fill_color = (0, 0, 0)
+            fill_color = [0, 0, 0]
             try:
                 if hasattr(shape.fill, 'fore_color') and hasattr(shape.fill, 'type') and shape.fill.type != 0:
                     fill_color = rgb_to_tuple(shape.fill.fore_color)
