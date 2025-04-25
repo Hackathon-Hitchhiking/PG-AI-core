@@ -20,6 +20,7 @@ from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts, TextFrameO
 from tests.agno_manager import get_head_agent
 
 
+logger.add('test.log', rotation='100 MB', encoding='utf-8')
 load_dotenv()
 
 if not os.environ.get('OPENAI_API_KEY'):
