@@ -34,6 +34,7 @@ class GeometricShape(BaseModel):
     top: float
     width: float
     height: float
+    rounding: float
     color: list[int] = (255, 255, 255)
     line_color: list[int] = (0, 0, 0)
     line_width: float = 1.0
@@ -88,6 +89,44 @@ class FigureManager:
             figure_shape_json[slide_id] = shapes_json
 
         return figure_shape_json
+
+    def copy_figure_shape(self, slide_id_from: int, shape_id: int, slide_id_to: int) -> str:
+        """
+        Копирует фигуру с одного слайда на другой.
+
+        Args:
+            slide_id_from (int): ID исходного слайда.
+            shape_id (int): ID фигуры на исходном слайде.
+            slide_id_to (int): ID целевого слайда.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        logger.debug(
+            f'Вызов copy_figure_shape с параметрами slide_id_from={slide_id_from}, shape_id={shape_id}, slide_id_to={slide_id_to}'
+        )
+
+        shape = self._get_shape(slide_id_from, shape_id)
+        if shape is None:
+            return f'Фигура (ID {shape_id}) не найдена на слайде {slide_id_from}.'
+
+        result = self.add_figure_shape(
+            slide_id=slide_id_to,
+            shape_type=shape.shape_type,
+            left=shape.left,
+            top=shape.top,
+            width=shape.width,
+            height=shape.height,
+            color=shape.color,
+            line_color=shape.line_color,
+            line_width=shape.line_width,
+            rounding=shape.rounding,
+            transparency=shape.transparency,
+            rotation=shape.rotation,
+            adjustments=shape.adjustments,
+        )
+
+        return f'Фигура (shape_id={shape_id}) успешно скопирована со слайда {slide_id_from} на слайд {slide_id_to}. {result}'
 
     def add_figure_shape(
         self,
@@ -153,7 +192,14 @@ class FigureManager:
         width_emu = Emu(px_to_emu(width))
         height_emu = Emu(px_to_emu(height))
 
+        # TODO delete this auto review
+        # sending the figure to the background
         shape = slide.shapes.add_shape(shape_type, left_emu, top_emu, width_emu, height_emu)
+
+        shape_tree = slide.shapes._spTree
+        shape_element = shape_tree[slide.shapes.index(shape)]
+        shape_tree.remove(shape_element)
+        shape_tree.insert(0, shape_element)
 
         self.shape_id_counter[slide_id] += 1
         shape_id = self.shape_id_counter[slide_id]
@@ -723,7 +769,6 @@ class FigureManager:
             try:
                 if hasattr(shape.fill, 'fore_color') and shape.fill.type != 0:
                     fill_color = tuple(shape.fill.fore_color.rgb)
-                    # print(fill_color)
             except Exception:
                 pass
 
@@ -748,6 +793,15 @@ class FigureManager:
             except Exception as e:
                 logger.debug(f'Не удалось получить настройки формы: {e}')
 
+            # Extract rounding value from adjustments if available
+            rounding = 0.0
+            try:
+                if adjustments and len(adjustments) > 0:
+                    # Convert from PowerPoint's scale (0-100000) to normalized scale (0.0-1.0)
+                    rounding = adjustments[0] / 100000.0
+            except Exception as e:
+                logger.debug(f'Не удалось получить значение скругления: {e}')
+
             geometric_shape = GeometricShape(
                 shape_id=shape_id,
                 slide_id=slide_id,
@@ -760,6 +814,7 @@ class FigureManager:
                 line_color=line_color,
                 line_width=line_width,
                 adjustments=adjustments,
+                rounding=rounding,
                 shape_manager=shape,
             )
 
