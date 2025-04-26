@@ -192,7 +192,14 @@ class FigureManager:
         width_emu = Emu(px_to_emu(width))
         height_emu = Emu(px_to_emu(height))
 
+        # TODO delete this auto review
+        # sending the figure to the background
         shape = slide.shapes.add_shape(shape_type, left_emu, top_emu, width_emu, height_emu)
+
+        shape_tree = slide.shapes._spTree
+        shape_element = shape_tree[slide.shapes.index(shape)]
+        shape_tree.remove(shape_element)
+        shape_tree.insert(0, shape_element)
 
         self.shape_id_counter[slide_id] += 1
         shape_id = self.shape_id_counter[slide_id]
