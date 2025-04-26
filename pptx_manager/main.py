@@ -375,11 +375,11 @@ class PPTXManager(
 
 
 if __name__ == '__main__':
-    pr = PPTXManager('../test_data/test_dit.pptx')
+    pr = PPTXManager('test_data/test_dit.pptx')
 
     # rect1 = pr.add_figure_shape(
     #     2,
-    #     MSO_SHAPE.ROUNDED_RECTANGLE,
+    #     MSO_SHAPE.ROUNDED_RxwzECTANGLE,
     #     300,
     #     500,
     #     100,
@@ -404,6 +404,7 @@ if __name__ == '__main__':
     # pr.set_shape_rounding(3, 1, 1)
     # pr.set_shape_rounding(3, 3, 0.1)
 
-    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(4), indent=4)}')
-
+    logger.debug(f'figure = {json.dumps(pr.get_json_schema(), indent=4, ensure_ascii=False)}')
+    with open('pr_schema.json', 'w', encoding='utf-8') as f:
+        json.dump(pr.get_json_schema(), f, indent=4, ensure_ascii=False)
     pr.save('test_create.pptx')
