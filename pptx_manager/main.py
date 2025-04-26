@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 
@@ -6,6 +5,7 @@ from io import BytesIO
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 
+from dotenv import load_dotenv
 from loguru import logger
 from pdf2image import convert_from_path
 from pptx import Presentation
@@ -375,12 +375,115 @@ class PPTXManager(
         result = self.create_image_shape(slide_id_to, opts)
         return f'Изображение (shape_id={shape_id}) успешно скопировано со слайда {slide_id_from} на слайд {slide_id_to}. {result}'
 
+    # TODO: работает хуево, нужно исправить.
+    def copy_template_slide_to_presentation(self, slide_id: int, template_id: int, output_path: str) -> str:
+        """
+        Копирует единственный слайд из шаблона templates/template_{template_id}.pptx
+        и вставляет его в основную презентацию под номером slide_id (1-based).
+        Сохраняет результат в output_path.
+
+        Args:
+            slide_id (int): Позиция для вставки нового слайда (1-based).
+            template_id (int): ID шаблона (например, 1 или 2).
+            output_path (str): Путь для сохранения итоговой презентации.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        template_path = f'templates/template_{template_id}.pptx'
+        if not os.path.exists(template_path):
+            return f'Файл шаблона не найден: {template_path}'
+
+        # Используем PPTXManager для шаблона, чтобы получить корректную схему
+        template_pr = PPTXManager(template_path, True)
+        if template_pr.slide_count != 1:
+            return f'В шаблоне {template_path} должен быть ровно один слайд'
+
+        schema = template_pr.get_json_schema()
+        slide_schema = schema[1]  # шаблон всегда один слайд, id=1
+
+        # Вставляем новый слайд в нужную позицию
+        self.add_slide_at_position(slide_id, layout_index=0)
+
+        # Копируем фигуры (figure)
+        for fig in slide_schema.get('figure', []):
+            try:
+                self.add_figure_shape(
+                    slide_id,
+                    fig['shape_type'],
+                    fig['left'],
+                    fig['top'],
+                    fig['width'],
+                    fig['height'],
+                    color=fig.get('color'),
+                    line_color=fig.get('line_color'),
+                    line_width=fig.get('line_width'),
+                    rounding=fig.get('rounding'),
+                    transparency=fig.get('transparency'),
+                    rotation=fig.get('rotation'),
+                )
+            except Exception as e:
+                logger.warning(f'Ошибка при копировании фигуры: {e}')
+
+        # Копируем текстовые блоки
+        for text in slide_schema.get('text', []):
+            try:
+                self.create_text_shape(
+                    slide_id,
+                    CreateTextFrameOpts(
+                        left=text['left'],
+                        top=text['top'],
+                        width=text['width'],
+                        height=text['height'],
+                        text=text.get('text', ''),
+                        color=text.get('color'),
+                        size=text.get('size'),
+                        bold=text.get('bold'),
+                        italic=text.get('italic'),
+                        underline=text.get('underline'),
+                        font_name=text.get('font_name'),
+                        align=text.get('align'),
+                        vertical_align=text.get('vertical_align'),
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f'Ошибка при копировании текстового блока: {e}')
+
+        # Копируем изображения
+        for img in slide_schema.get('image', []):
+            try:
+                image_bytes = template_pr.get_image_frame_shape_blob(1, img['shape_id'])
+                self.create_image_shape(
+                    slide_id,
+                    CreateImageFrameOpts(
+                        left=img['left'],
+                        top=img['top'],
+                        width=img['width'],
+                        height=img['height'],
+                        image=image_bytes,
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f'Ошибка при копировании изображения: {e}')
+
+        # Можно добавить копирование таблиц и других элементов по аналогии
+
+        # Сохраняем результат
+        try:
+            self.save(output_path)
+        except Exception as e:
+            logger.error(f'Ошибка при сохранении презентации: {e}')
+            return f'Ошибка при сохранении презентации: {e}'
+
+        return f'Слайд из шаблона template_{template_id}.pptx успешно вставлен как слайд #{slide_id} и сохранён в {output_path}'
+
     def save(self, path: str) -> None:
         self.pres.save(path)
 
 
 if __name__ == '__main__':
-    pr = PPTXManager('test_data/test_dit.pptx')
+    load_dotenv()
+    pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
 
     # rect1 = pr.add_figure_shape(
     #     2,
@@ -409,12 +512,22 @@ if __name__ == '__main__':
     # pr.set_shape_rounding(3, 1, 1)
     # pr.set_shape_rounding(3, 3, 0.1)
 
-    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(2), indent=4)}')
+    # logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(2), indent=4)}')
 
-    pr.add_slide_at_position(9, 0)
-    result = pr.copy_figure_shape(2, 1, 9)
-    logger.debug(f'rsult = {result}')
+    # pr.add_slide_at_position(9, 0)
+    # result = pr.copy_figure_shape(2, 1, 8)
+    # logger.debug(f'rsult = {result}')
 
-    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(9), indent=4)}')
+    # logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(8), indent=4)}')
+
+    # Тест копирования слайда из шаблона
+    # Добавит слайд из templates/template_1.pptx как второй слайд и сохранит результат
+    result = pr.copy_template_slide_to_presentation(
+        slide_id=8,  # вставить как второй слайд
+        template_id=1,
+        output_path='test_copy_template.pptx',
+    )
+    print(result)
+    logger.debug(result)
 
     pr.save('test_create.pptx')
