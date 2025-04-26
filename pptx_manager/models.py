@@ -49,7 +49,7 @@ class TextFrameOpts(BaseModel):
     text: str | None = None
     font_name: str | None = None
     color: list[int] | None = None
-    size: int | None = None
+    size: float | None = None
     bold: bool | None = None
     italic: bool | None = None
     underline: bool | None = None
@@ -88,11 +88,11 @@ class CreateShapeOpts(BaseModel):
 
 
 class ImageFrameOpts(BaseModel):
-    width: int | None = None
-    height: int | None = None
+    width: float | None = None
+    height: float | None = None
 
-    left: int | None = None
-    top: int | None = None
+    left: float | None = None
+    top: float | None = None
 
 
 class CreateImageFrameOpts(ImageFrameOpts):

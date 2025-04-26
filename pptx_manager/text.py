@@ -9,6 +9,7 @@ from loguru import logger
 from PIL import ImageColor
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.lang import MSO_LANGUAGE_ID
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml import parse_xml
@@ -218,7 +219,11 @@ class TextFrameManager:
         copy_font.bold = base_font.bold
         copy_font.italic = base_font.italic
         copy_font.underline = base_font.underline
-        copy_font.language_id = base_font.language_id
+        try:
+            # fix error ValueError: MSO_LANGUAGE_ID has no XML mapping for 'en'
+            copy_font.language_id = base_font.language_id
+        except ValueError:
+            copy_font.language_id = MSO_LANGUAGE_ID.RUSSIAN
 
         font_color = self._get_font_color(slide, base_font)
 
@@ -330,16 +335,10 @@ class TextFrameManager:
                         shape_id += 1
             slide_id += 1
 
-        self.update_text_frame_shape(
-            -1,
-            2,
-            {'text': 'тест', 'italic': True, 'size': 50},
-        )
-
         self.pres.save('test.pptx')
 
 
 if __name__ == '__main__':
     fm = TextFrameManager()
 
-    fm.test('../test_data/test.pptx')
+    fm.test('../test_data/final_test_1.pptx')

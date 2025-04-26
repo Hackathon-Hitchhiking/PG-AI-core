@@ -164,7 +164,7 @@ class PPTXManager(
                 -   top (int): Позиция рамки текста по оси Y.
                 -   text (str | None, optional): Текстовое содержимое для фигуры.
                 -   color (list[int] | None, optional): Цвет текста в формате RGB кортежа.
-                -   size (int): Размер шрифта для текста.
+                -   size (float): Размер шрифта для текста.
                 -   bold (bool | None, optional): Установить текст жирным или нет.
                 -   italic (bool | None, optional): Установить текст курсивом или нет.
                 -   underline (bool | None, optional): Установить подчеркивание текста или нет.
@@ -353,6 +353,10 @@ class PPTXManager(
         Returns:
             str: Сообщение о результате операции.
         """
+        logger.debug(
+            f'Вызов copy_image_shape с параметрами slide_id_from={slide_id_from}, shape_id={shape_id}, slide_id_to={slide_id_to}'
+        )
+
         shape = self._get_image_frame_shape(slide_id_from, shape_id)
         if shape is None:
             return f'Фигура с изображением (ID {shape_id}) не найдена на слайде {slide_id_from}.'
@@ -361,12 +365,13 @@ class PPTXManager(
             return f'Фигура с изображением (ID {shape_id}) не содержит данных изображения.'
 
         opts = CreateImageFrameOpts(
-            left=int(shape.left),
-            top=int(shape.top),
-            width=int(shape.width),
-            height=int(shape.height),
+            left=shape.left,
+            top=shape.top,
+            width=shape.width,
+            height=shape.height,
             image=shape.blob,
         )
+
         result = self.create_image_shape(slide_id_to, opts)
         return f'Изображение (shape_id={shape_id}) успешно скопировано со слайда {slide_id_from} на слайд {slide_id_to}. {result}'
 
@@ -375,7 +380,7 @@ class PPTXManager(
 
 
 if __name__ == '__main__':
-    pr = PPTXManager('../test_data/test_dit.pptx')
+    pr = PPTXManager('../test_data/final_test_1.pptx')
 
     # rect1 = pr.add_figure_shape(
     #     2,
@@ -404,6 +409,12 @@ if __name__ == '__main__':
     # pr.set_shape_rounding(3, 1, 1)
     # pr.set_shape_rounding(3, 3, 0.1)
 
-    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(4), indent=4)}')
+    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(2), indent=4)}')
+
+    pr.add_slide_at_position(9, 0)
+    result = pr.copy_figure_shape(2, 1, 9)
+    logger.debug(f'rsult = {result}')
+
+    logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(9), indent=4)}')
 
     pr.save('test_create.pptx')

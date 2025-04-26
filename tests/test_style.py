@@ -107,67 +107,92 @@ def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
 
 STYLE_AGENT_CORE_INSTRUCTIONS = [
     # Analyze the reference presentation for design language, layout, and content structure.
-    'Analyze the reference presentation to extract its visual style, layout patterns, and content organization.',
-    'Identify color schemes, typography, spacing, and recurring design elements.',
-    'Determine how new content should be integrated to match the existing style.',
+    'Проанализируйте эталонную презентацию, чтобы извлечь ее визуальный стиль, шаблоны макета и организацию контента.',
+    'Определите цветовые схемы, типографику, интервалы и повторяющиеся элементы дизайна.',
+    'Определите, как новый контент должен быть интегрирован, чтобы соответствовать существующему стилю.',
     # Detect and analyze slide background colors
-    'Detect and analyze the background color of each slide in the reference presentation.',
-    'Consider how background colors affect readability and visual hierarchy.',
-    'Ensure new content maintains appropriate contrast with the background color.',
-    'When recommending new slides, specify appropriate background colors that match the presentation style.',
+    'Обнаружите и проанализируйте цвет фона каждого слайда в эталонной презентации.',
+    'Учитывайте, как цвета фона влияют на читаемость и визуальную иерархию.',
+    'Убедитесь, что новый контент сохраняет соответствующий контраст с цветом фона.',
+    'При рекомендации новых слайдов укажите соответствующие цвета фона, которые соответствуют стилю презентации.',
     # Generate actionable instructions for HeadAgent.
-    'For the given user request, generate a detailed list of instructions describing:',
-    '- Which slides to add or modify.',
-    '- Where to place each content element (text, images, figures, etc.) with coordinates and sizes.',
-    '- What content to include (text, images, figures, background, etc.).',
-    f'- Any specific style requirements ({TextFrameOpts.model_fields.keys()}).',
-    '- Background colors for new slides that match the presentation style.',
-    'Output only a list of clear, step-by-step instructions for HeadAgent to execute.',
-    'Do not perform any slide or image creation yourself.',
-    'Ensure instructions are unambiguous and cover all necessary details for implementation.',
+    'Для данного запроса пользователя сгенерируйте подробный список инструкций, описывающих:',
+    '- Какие слайды добавить или изменить.',
+    '- Где разместить каждый элемент контента (текст, изображения, фигуры и т.д.) с координатами и размерами.',
+    '- Какой контент включить (текст, изображения, фигуры, фон и т.д.).',
+    f'- Любые конкретные требования к стилю ({TextFrameOpts.model_fields.keys()}).',
+    '- Цвета фона для новых слайдов, которые соответствуют стилю презентации.',
+    'Выводите только список четких, пошаговых инструкций для выполнения HeadAgent.',
+    'Не выполняйте создание слайдов или изображений самостоятельно.',
+    'Убедитесь, что инструкции однозначны и охватывают все необходимые детали для реализации.',
     # Enhanced image generation instructions
-    'For each slide, actively consider if it would benefit from relevant images that enhance the content:',
-    '- Images should complement the text content and reinforce key messages',
-    '- Consider using images for abstract concepts, data visualization, or illustrative examples',
-    '- Maintain visual consistency with the presentation style',
-    '- Ensure images have appropriate contrast with the slide background color',
-    'When a slide would benefit from an image, include a "create_image" step for HeadAgent:',
-    '- Specify the target slide_id.',
-    '- Give a detailed prompt for DALL·E 2 **in English** so the model understands style and subject clearly.',
-    '- Include specific visual elements, style, composition, and color palette in the prompt',
-    "- Match the prompt's style (palette, mood, level of abstraction) to the reference presentation.",
-    "- When generating the prompt, explicitly include instructions to use colors that comply with the presentation's color scheme",
-    "- Consider the slide's content, purpose, and background color when crafting the image prompt",
-    '- Provide exact left, top, width, height (pixels) for the image frame.',
-    'For technical or data-heavy slides, consider images that:',
-    '- Visualize complex concepts or processes',
-    '- Illustrate technical components or systems',
-    '- Represent data trends or statistics in a visual format',
-    'For conceptual or strategic slides, consider images that:',
-    '- Evoke the right emotional response',
-    '- Use metaphors or symbols to represent abstract ideas',
-    '- Reinforce the key message or theme of the slide',
+    'Для каждого слайда активно рассматривайте, выиграет ли он от соответствующих изображений, которые улучшают содержание:',
+    '- Изображения должны дополнять текстовый контент и усиливать ключевые сообщения',
+    '- Рассмотрите возможность использования изображений для абстрактных концепций, визуализации данных или иллюстративных примеров',
+    '- Поддерживайте визуальную согласованность со стилем презентации',
+    '- Убедитесь, что изображения имеют соответствующий контраст с цветом фона слайда',
+    'Когда слайд выиграет от изображения, включите шаг "create_image" для HeadAgent:',
+    '- Укажите целевой slide_id.',
+    '- Дайте подробный запрос для DALL·E 2 **на английском языке**, чтобы модель четко понимала стиль и тему.',
+    '- Включите в запрос конкретные визуальные элементы, стиль, композицию и цветовую палитру',
+    '- Сопоставьте стиль запроса (палитра, настроение, уровень абстракции) с эталонной презентацией.',
+    '- При создании запроса явно включите инструкции по использованию цветов, соответствующих цветовой схеме презентации',
+    '- Учитывайте содержание слайда, его назначение и цвет фона при составлении запроса на изображение',
+    '- Укажите точные значения left, top, width, height (в пикселях) для рамки изображения.',
+    'Для технических или насыщенных данными слайдов рассмотрите изображения, которые:',
+    '- Визуализируют сложные концепции или процессы',
+    '- Иллюстрируют технические компоненты или системы',
+    '- Представляют тенденции данных или статистику в визуальном формате',
+    'Для концептуальных или стратегических слайдов рассмотрите изображения, которые:',
+    '- Вызывают правильную эмоциональную реакцию',
+    '- Используют метафоры или символы для представления абстрактных идей',
+    '- Усиливают ключевое сообщение или тему слайда',
     # Figure creation instructions
-    'You can also recommend adding geometric shapes and figures to enhance slide design and visual organization:',
-    '- Consider using shapes to highlight key information, create visual hierarchy, or organize content',
-    '- Shapes can be used for backgrounds, borders, dividers, callouts, or decorative elements',
-    '- Ensure shapes match the presentation style and color scheme',
-    'When a slide would benefit from shapes or figures, include a "add_figure_shape" step for HeadAgent:',
-    '- Specify the target slide_id',
-    '- Indicate the shape type (rectangle, rounded rectangle, oval, etc.)',
-    '- Provide exact left, top, width, height (pixels) for the shape',
-    '- Always specify the position (left, top) and dimensions (height, width) of each figure',
-    '- Specify fill color, line color, line width, and transparency, rounding, rotation as needed',
-    '- For rounded rectangles, specify the rounding value (0.0-1.0)',
-    "- Consider how shapes can be used to create visual structure and guide the viewer's attention",
+    'Вы также можете рекомендовать добавление геометрических фигур для улучшения дизайна слайдов и визуальной организации:',
+    '- Рассмотрите возможность использования фигур для выделения ключевой информации, создания визуальной иерархии или организации контента',
+    '- Фигуры могут использоваться для фонов, границ, разделителей, выносок или декоративных элементов',
+    '- Убедитесь, что фигуры соответствуют стилю презентации и цветовой схеме',
+    'Когда слайд выиграет от фигур, включите шаг "add_figure_shape" для HeadAgent:',
+    '- Укажите целевой slide_id',
+    '- Укажите тип фигуры (прямоугольник, скругленный прямоугольник, овал и т.д.)',
+    '- Укажите точные значения left, top, width, height (в пикселях) для фигуры',
+    '- Всегда указывайте положение (left, top) и размеры (height, width) каждой фигуры',
+    '- Укажите цвет заливки, цвет линии, ширину линии, прозрачность, скругление, поворот по мере необходимости',
+    '- Для скругленных прямоугольников укажите значение скругления (0.0-1.0)',
+    '- Рассмотрите, как фигуры могут использоваться для создания визуальной структуры и направления внимания зрителя',
+    # Logo detection and copying instructions
+    'Обнаруживайте логотипы в эталонной презентации и используйте их в новых слайдах:',
+    '- Анализируйте слайды эталонной презентации на наличие логотипов компании или организации',
+    '- Учитывайте, что логотипы обычно находятся в одном из углов слайда и присутствуют на большинстве слайдов презентации',
+    '- Если логотип обнаружен, используйте метод "copy_image_shape" для копирования его на новые слайды',
+    '- Не создавайте логотипы заново, всегда копируйте существующие логотипы из эталонной презентации',
+    '- При копировании логотипа укажите исходный slide_id, shape_id логотипа и целевой slide_id',
+    '- Сохраняйте согласованность размещения логотипов на всех слайдах презентации',
+    # Template objects detection and copying
+    'Если какие-то объекты находятся почти на всех слайдах, то это шаблон презентации и его следует копировать на все новые слайды:',
+    '- Анализируйте слайды эталонной презентации на наличие повторяющихся объектов (изображения, фигуры, текстовые блоки)',
+    '- Если объект присутствует на большинстве слайдов в одном и том же месте, считайте его частью шаблона презентации',
+    '- Используйте соответствующие методы (например, "copy_image_shape") для копирования этих объектов на все новые слайды',
+    '- Сохраняйте точное расположение и форматирование этих объектов при копировании',
+    '- Убедитесь, что все новые слайды содержат все элементы шаблона презентации',
     # Font and color copying instructions
-    'Always copy and use colors and fonts from the template presentation:',
-    '- Analyze and extract the exact font names, sizes, and styles used in the template',
-    '- Identify and use the color palette from the template (background colors, text colors, accent colors)',
-    '- When specifying text properties, always indicate the exact font name and color copied from the template',
-    '- For each text element, clearly specify which font and color from the template you are using',
-    '- Maintain consistency with the template by using the same font hierarchy (headings, body text, etc.)',
-    '- Ensure all new content matches the visual style of the template presentation',
+    'Всегда копируйте и используйте цвета и шрифты из шаблона презентации:',
+    '- Анализируйте и извлекайте точные названия шрифтов, размеры и стили, используемые в шаблоне',
+    '- Определяйте и используйте цветовую палитру из шаблона (цвета фона, цвета текста, акцентные цвета)',
+    '- При указании свойств текста всегда указывайте точное название шрифта и цвет, скопированные из шаблона',
+    '- Для каждого текстового элемента четко указывайте, какой шрифт и цвет из шаблона вы используете',
+    '- Поддерживайте согласованность с шаблоном, используя ту же иерархию шрифтов (заголовки, основной текст и т.д.)',
+    '- Убедитесь, что весь новый контент соответствует визуальному стилю шаблона презентации',
+    # Slide layout optimization
+    'Старайтесь избегать пустых пространств на слайдах:',
+    '- Заполняйте слайд содержательным контентом и визуальными элементами',
+    '- Равномерно распределяйте контент по площади слайда',
+    '- Эффективно используйте доступное пространство, сохраняя при этом правильные интервалы и поля',
+    'Отдавайте приоритет использованию большего количества объектов на слайдах:',
+    '- Предпочитайте использование нескольких дополняющих объектов (фигуры, изображения, текстовые блоки) вместо больших пустых областей',
+    '- Рассмотрите возможность разбиения больших текстовых блоков на несколько меньших текстовых объектов с поддерживающими визуальными элементами',
+    '- Используйте фигуры, значки и визуальные элементы для улучшения контента и заполнения соответствующих пространств',
+    '- Балансируйте плотность объектов с читаемостью и визуальной ясностью',
 ]
 
 style_agent_model = OpenAIChat(id='gpt-4.1-mini', client=open_sync_client, async_client=open_async_client)
@@ -259,6 +284,7 @@ user_request_for_final_test_1 = dedent("""
 безопасность – решение состоит в Реестре Отечественного ПО, стек соответствует требованиям ИБ.""")
 
 user_request_for_final_test_2 = dedent("""
+Добавь новый слайд
 Система управления обучением Вектор – часть культуры непрерывного обучения
 Начало карьеры:
 тестирование для профориентации
@@ -279,7 +305,7 @@ user_request_for_final_test_2 = dedent("""
 """)
 
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_1}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
     # images=slide_images,
 )
 
@@ -290,15 +316,16 @@ logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), 
 head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent()
 
 text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape]  # pr.delete_text_shape
-slide_agent.tools = [pr.add_slide_at_position, pr.swap_slides]  # pr.delete_slide
-image_agent.tools = [create_image, pr.delete_image_shape]
+slide_agent.tools = [pr.add_slide_at_position]  # pr.delete_slide, pr.swap_slides
+image_agent.tools = [create_image, pr.copy_image_shape]  # pr.delete_image_shape
 figure_agent.tools = [
     pr.update_shape_color,
     pr.update_shape_position,
     pr.update_shape_transparency,
     pr.set_shape_rounding,
     pr.add_figure_shape,
-    pr.delete_figure_shape,
+    pr.copy_figure_shape,
+    #    pr.delete_figure_shape,
 ]
 
 text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'
@@ -324,7 +351,7 @@ figure_agent.instructions[-2] = (
 
 head_agent.run(style_output.instructions)
 
-logger.debug(f'metrics = {style_agent.run_response.metrics}')
+logger.debug(f'style agnet metrics = {style_agent.run_response.metrics}')
 
 logger.debug(f'head agent metrics = {head_agent.run_response.metrics if head_agent.run_response else 0}')
 logger.debug(f'image agent metrics = {image_agent.run_response.metrics if image_agent.run_response else 0}')
