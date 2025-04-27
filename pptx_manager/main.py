@@ -1,6 +1,8 @@
+import json
 import os
 import subprocess
 
+from collections import defaultdict
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from textwrap import dedent
@@ -477,6 +479,19 @@ class PPTXManager(
 
         return f'Слайд из шаблона template_{template_id}.pptx успешно вставлен как слайд #{slide_id} и сохранён в {output_path}'
 
+    def get_tasks_from_slide(self):
+        text_frames = self.get_all_text_frame_json()
+
+        tasks: defaultdict[int, str] = defaultdict(str)
+
+        for slide_id, texts in text_frames.items():
+            for text in texts:
+                if text['color'] == (255, 64, 0):
+                    tasks[slide_id] += text['text'] + '\n'
+                    self.delete_text_shape(slide_id, text['shape_id'])
+
+        return tasks
+
     def save(self, path: str) -> None:
         self.pres.save(path)
 
@@ -518,16 +533,8 @@ if __name__ == '__main__':
     # result = pr.copy_figure_shape(2, 1, 8)
     # logger.debug(f'rsult = {result}')
 
-    # logger.debug(f'figure = {json.dumps(pr.get_figure_frame_json(8), indent=4)}')
+    logger.debug(pr.get_tasks_from_slide())
 
-    # Тест копирования слайда из шаблона
-    # Добавит слайд из templates/template_1.pptx как второй слайд и сохранит результат
-    result = pr.copy_template_slide_to_presentation(
-        slide_id=8,  # вставить как второй слайд
-        template_id=1,
-        output_path='test_copy_template.pptx',
-    )
-    print(result)
-    logger.debug(result)
+    logger.debug(f'figure = {json.dumps(pr.get_text_frame_json(8), indent=4)}')
 
     pr.save('test_create.pptx')

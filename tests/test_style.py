@@ -201,6 +201,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
     '- Инструкции должны быть прямыми и конкретными, без предложений запросить подтверждение',
     # Instructions for handling cases when user request can't be matched with existing slides
     'Если вы не можете сопоставить запрос пользователя с расположением объектов на каком-либо другом слайде, применяйте свой стиль, основанный на общем стиле презентации.',
+    'Если входной текст превышает 4 строки или 250 символов, делите его на несколько текстовых объектов и/или дополняйте изображениями и фигурами — не вставляйте единую «портянку» текста.',
 ]
 
 style_agent_model = OpenAIChat(id='gpt-4.1-mini', client=open_sync_client, async_client=open_async_client)
@@ -313,10 +314,17 @@ user_request_for_final_test_2 = dedent("""
 авторские курсы и передача опыта
 """)
 
-message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
-    # images=slide_images,
-)
+tasks = pr.get_tasks_from_slide()
+
+for slide_id, task in tasks.items():
+    message = style_agent.run(
+        f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent для слайда {slide_id}: {task}',
+        # images=slide_images,
+    )
+# message = style_agent.run(
+#     f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
+#     # images=slide_images,
+# )
 
 style_output: StyleOutput = message.content
 
