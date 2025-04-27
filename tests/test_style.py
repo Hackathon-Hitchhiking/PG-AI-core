@@ -316,15 +316,16 @@ user_request_for_final_test_2 = dedent("""
 
 tasks = pr.get_tasks_from_slide()
 
-for slide_id, task in tasks.items():
-    message = style_agent.run(
-        f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent для слайда {slide_id}: {task}',
-        # images=slide_images,
-    )
-# message = style_agent.run(
-#     f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
-#     # images=slide_images,
-# )
+# for slide_id, task in tasks.items():
+#     message = style_agent.run(
+#         f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent для слайда {slide_id}: {task}',
+#         # images=slide_images,
+#     )
+
+message = style_agent.run(
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
+    # images=slide_images,
+)
 
 style_output: StyleOutput = message.content
 
