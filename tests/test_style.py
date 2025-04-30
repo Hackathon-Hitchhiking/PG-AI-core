@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 
@@ -8,7 +7,6 @@ from textwrap import dedent
 import httpx
 
 from agno.agent import Agent
-from agno.media import Image
 from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
 from loguru import logger
@@ -16,8 +14,8 @@ from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 
 from pptx_manager.main import PPTXManager
-from pptx_manager.models import CreateImageFrameOpts, ImageFrameOpts, TextFrameOpts
-from tests.agno_manager import get_head_agent
+from pptx_manager.models import ImageFrameOpts, TextFrameOpts
+from tests.agno_manager import get_unify_head_agent
 
 
 logger.add('test.log', rotation='100 MB', encoding='utf-8')
@@ -53,56 +51,6 @@ class CreateStyleAgentImageFrameOpts(ImageFrameOpts):
 
 class StyleOutput(BaseModel):
     instructions: list[str]
-
-
-def create_image(prompt: str, slide_id: int, opts: ImageFrameOpts) -> str:
-    """
-    Генерирует изображение с помощью DALL-E 2 на основе предоставленного запроса и размещает его на указанном слайде.
-
-    Args:
-        prompt (str): Текстовый запрос для генерации изображения.
-        slide_id (int): Идентификатор слайда, на котором будет размещено сгенерированное изображение.
-        opts (ImageFrameOpts): Параметры конфигурации для позиционирования и изменения размера сгенерированного изображения.
-            - left (float): Расстояние от левого края слайда.
-            - top (float): Расстояние от верхнего края слайда.
-            - width (float): Ширина изображения.
-            - height (float): Высота изображения.
-
-    Returns:
-        str: Сообщение о результате операции с подробным описанием созданной фигуры с изображением.
-    """
-    logger.debug(f'create_image вызвана с параметрами: prompt={prompt}, slide_id={slide_id}, opts={opts}')
-
-    # Append minimalistic style and no text requirements to the prompt
-    enhanced_prompt = f'{prompt}. The image should be in a minimalistic style and contain no text.'
-    # TODO fix here error
-    # ERROR
-    # Error
-    # code: 400 - {'error': {'message': 'Error in request. Please check
-    #                        your input.', 'type': 'invalid_request_error', 'param': None, 'code':
-    #                            None}}
-    response = open_sync_client.images.generate(
-        model='dall-e-3',
-        prompt=enhanced_prompt,
-        n=1,
-        size='1024x1024',
-        response_format='b64_json',
-    )
-
-    b64_data = response.data[0].b64_json
-
-    image_bytes = base64.b64decode(b64_data)
-
-    return pr.create_image_shape(
-        slide_id,
-        CreateImageFrameOpts(
-            left=opts.left,
-            top=opts.top,
-            width=opts.width,
-            height=opts.height,
-            image=image_bytes,
-        ),
-    )
 
 
 STYLE_AGENT_CORE_INSTRUCTIONS = [
@@ -207,7 +155,7 @@ STYLE_AGENT_CORE_INSTRUCTIONS = [
 style_agent_model = OpenAIChat(id='gpt-4.1-mini', client=open_sync_client, async_client=open_async_client)
 
 test_pres_path = os.environ.get('TEST_PRES_PATH')
-pr = PPTXManager(test_pres_path, True)
+pr = PPTXManager(test_pres_path, False)
 
 style_agent = Agent(
     name='Style Agent',
@@ -225,9 +173,9 @@ style_agent = Agent(
 )
 
 
-slide_images = []
-for slide_id in range(1, pr.get_slide_count() + 1):
-    slide_images.append(Image(content=pr.get_slide_image(slide_id), format='png'))
+# slide_images = []
+# for slide_id in range(1, pr.get_slide_count() + 1):
+#     slide_images.append(Image(content=pr.get_slide_image(slide_id), format='png'))
 
 text_for_new_slide = dedent("""
 РЕЗУЛЬТАТ ОТ ИСПОЛЬЗОВАНИЯ СИСТЕМЫ
@@ -294,7 +242,7 @@ user_request_for_final_test_1 = dedent("""
 безопасность – решение состоит в Реестре Отечественного ПО, стек соответствует требованиям ИБ.""")
 
 user_request_for_final_test_2 = dedent("""
-Добавь новый слайд
+Добавь новый слайд в конец
 Система управления обучением Вектор
 Начало карьеры:
 тестирование для профориентации
@@ -331,50 +279,20 @@ style_output: StyleOutput = message.content
 
 logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), indent=4, ensure_ascii=False)}')
 
-head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent()
+# head_agent, text_agent, slide_agent, image_agent, figure_agent = get_head_agent(pr)
+#
+# head_agent.run(style_output.instructions)
+#
+# logger.debug(f'style agnet metrics = {style_agent.run_response.metrics}')
+#
+# logger.debug(f'head agent metrics = {head_agent.run_response.metrics if head_agent.run_response else 0}')
+# logger.debug(f'image agent metrics = {image_agent.run_response.metrics if image_agent.run_response else 0}')
+# logger.debug(f'text agent metrics = {text_agent.run_response.metrics if text_agent.run_response else 0}')
+# logger.debug(f'slide agent metrics = {slide_agent.run_response.metrics if slide_agent.run_response else 0}')
+# logger.debug(f'figure agent metrics = {figure_agent.run_response.metrics if figure_agent.run_response else 0}')
 
-text_agent.tools = [pr.update_text_frame_shape, pr.create_text_shape]  # pr.delete_text_shape
-slide_agent.tools = [pr.add_slide_at_position]  # pr.delete_slide, pr.swap_slides
-image_agent.tools = [create_image, pr.copy_image_shape]  # pr.delete_image_shape
-figure_agent.tools = [
-    pr.update_shape_color,
-    pr.update_shape_position,
-    pr.update_shape_transparency,
-    pr.set_shape_rounding,
-    pr.add_figure_shape,
-    pr.copy_figure_shape,
-    #    pr.delete_figure_shape,
-]
+pptx_agent = get_unify_head_agent(pr)
 
-text_agent.instructions[-1] = f'структура текстовых элементов: {pr.get_all_text_frame_json()}'
-image_agent.instructions[-1] = f'структура картинок в презентации: {pr.get_all_image_json()}'
-figure_agent.instructions[-1] = (f'структура фигур в презентации в презентации: {pr.get_all_figure_frame_json()}',)
-slide_agent.instructions[-1] = f'кол-во слайдов: {pr.get_slide_count()}'
-
-slide_size = pr.get_slide_size_px()
-slide_count = pr.get_slide_count()
-
-text_agent.instructions[-2] = (
-    f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
-)
-image_agent.instructions[-2] = (
-    f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
-)
-slide_agent.instructions[-2] = (
-    f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
-)
-figure_agent.instructions[-2] = (
-    f'Размер слайдов в пикселях {slide_size}, используй координаты, чтобы вставлять объекты.',
-)
-
-head_agent.run(style_output.instructions)
-
-logger.debug(f'style agnet metrics = {style_agent.run_response.metrics}')
-
-logger.debug(f'head agent metrics = {head_agent.run_response.metrics if head_agent.run_response else 0}')
-logger.debug(f'image agent metrics = {image_agent.run_response.metrics if image_agent.run_response else 0}')
-logger.debug(f'text agent metrics = {text_agent.run_response.metrics if text_agent.run_response else 0}')
-logger.debug(f'slide agent metrics = {slide_agent.run_response.metrics if slide_agent.run_response else 0}')
-logger.debug(f'figure agent metrics = {figure_agent.run_response.metrics if figure_agent.run_response else 0}')
+pptx_agent.run('\n'.join(style_output.instructions))
 
 pr.save('style_test.pptx')
