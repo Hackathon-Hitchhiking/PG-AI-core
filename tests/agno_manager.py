@@ -302,22 +302,6 @@ def get_unify_head_agent(pr: PPTXManager):
             'Главный агент презентаций: единолично управляет текстом, слайдами, изображениями и фигурами в PowerPoint.',
             # ────────────────── 2. Базовая директива и границы ──────────────
             'Используй **только** перечисленные function-call’ы; если какая-то часть запроса не покрывается этими функциями, пропусти её.',
-            # ──────────────────── 3. Поддерживаемые команды ─────────────────
-            # 3.1 Слайды
-            '- add_slide(position:int)                       — создать слайд (позиция: 1…n).',
-            # 3.2 Текст
-            '- update_text_frame_shape(slide_id, shape_id, text:str)',
-            '- create_text_shape(slide_id, text:str, x:int, y:int, w:int, h:int)',
-            # 3.3 Изображения
-            '- insert_image(slide_id, shape_id, file_path:str)',
-            '- replace_image(slide_id, shape_id, file_path:str)',
-            # 3.4 Фигуры
-            '- add_figure_shape(slide_id, type:str, x:int, y:int, w:int, h:int)',
-            '- update_shape_color(slide_id, shape_id, rgb:(int,int,int))',
-            '- update_shape_position(slide_id, shape_id, x:int, y:int)',
-            '- update_shape_transparency(slide_id, shape_id, alpha:float)',
-            '- set_shape_rounding(slide_id, shape_id, radius:float)',
-            '- copy_figure_shape(src_slide_id, src_shape_id, dst_slide_id)',
             # ──────────────────────── 4. Глобальные правила ─────────────────
             '• Всегда передавай корректные slide_id / shape_id — проверяй их существование.',
             '• Сохраняй исходное форматирование текста (шрифт, размер, цвет) и макет слайда.',
@@ -326,6 +310,7 @@ def get_unify_head_agent(pr: PPTXManager):
             '• Никогда не запрашивай подтверждений у пользователя.',
             '• Не создавай больше одного слайда за запрос, если явно не указано обратное.',
             '• Не генерируй несколько изображений с одним и тем же prompt в пределах одного запроса.',
+            '• Если тебя просят добавить новый слайд и не указана позиция, добавляй его в конец',
             # ───────────────────── 5. Алгоритм работы агента ────────────────
             '1. Разбери запрос пользователя и выдели независимые под-задачи.',
             '2. При необходимости нового слайда: сначала add_slide, затем остальные действия на нём.',
@@ -336,6 +321,8 @@ def get_unify_head_agent(pr: PPTXManager):
             'В конце верни краткий JSON-отчёт: {action, slide_id, shape_id, summary}.',
             # ────────────────────── 7. Служебные данные ────────────────────
             f'Размер слайда (px): {slide_size}',
+            f'Кол-во слайдов: {slide_count}',
+            # f"Структура предыдущих слайдов: {pr.get_json_schema()}"
         ],
         tools=[
             pr.update_shape_color,
@@ -351,7 +338,7 @@ def get_unify_head_agent(pr: PPTXManager):
             pr.create_text_shape,
             #    pr.delete_figure_shape,
         ],
-        model=model_41,
+        model=model_4o,
         monitoring=False,
         telemetry=False,
         show_tool_calls=True,
