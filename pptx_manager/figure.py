@@ -158,7 +158,7 @@ class FigureManager:
             width (float): Ширина фигуры в пикселях.
             height (float): Высота фигуры в пикселях.
             color (list[int]): Цвет заливки фигуры в формате RGB (по умолчанию белый: [255, 255, 255]).
-            line_color (list[int]): Цвет контура фигуры в формате RGB (по умолчанию черный: (0, 0, 0)).
+            line_color (list[int]): Цвет контура фигуры в формате RGB (по умолчанию черный: (0, 0, 0)), если цвет не указан передавай (0, 0, 0).
             line_width (float): Толщина контура фигуры в пикселях (по умолчанию 1.0).
             rounding (float): Значение закругления углов прямоугольника от 0.0 до 1.0 (по умолчанию 0.0).
             transparency (float): Прозрачность фигуры от 0.0 до 1.0 (по умолчанию 0.0).
@@ -192,14 +192,7 @@ class FigureManager:
         width_emu = Emu(px_to_emu(width))
         height_emu = Emu(px_to_emu(height))
 
-        # TODO delete this auto review
-        # sending the figure to the background
         shape = slide.shapes.add_shape(shape_type, left_emu, top_emu, width_emu, height_emu)
-
-        shape_tree = slide.shapes._spTree
-        shape_element = shape_tree[slide.shapes.index(shape)]
-        shape_tree.remove(shape_element)
-        shape_tree.insert(0, shape_element)
 
         self.shape_id_counter[slide_id] += 1
         shape_id = self.shape_id_counter[slide_id]

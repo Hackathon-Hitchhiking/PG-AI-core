@@ -7,6 +7,7 @@ from textwrap import dedent
 import httpx
 
 from agno.agent import Agent
+from agno.media import Image
 from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
 from loguru import logger
@@ -15,8 +16,12 @@ from pydantic import BaseModel
 
 from pptx_manager.main import PPTXManager
 from pptx_manager.models import ImageFrameOpts
-from tests.agno_manager import get_unify_head_agent
-from tests.constants import STYLE_AGENT_CORE_INSTRUCTIONS_V2
+from tests.agno_manager import get_pptx_agent
+from tests.constants import (
+    CREATOR_PPTX_AGENT_INSTRUCTIONS,
+    FINALIZER_PPTX_AGENT_INSTRUCTIONS,
+    STYLE_AGENT_CORE_INSTRUCTIONS_V2,
+)
 
 
 logger.add('test.log', rotation='100 MB', encoding='utf-8')
@@ -173,7 +178,7 @@ tasks = pr.get_tasks_from_slide()
 #     )
 
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для HeadAgent: {user_request_for_final_test_2}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для PPTXAgent: {user_request_for_final_test_2}',
     # images=slide_images,
 )
 
@@ -192,11 +197,26 @@ logger.debug(f'StyleAgent instructions:\n{json.dumps(style_output.model_dump(), 
 # logger.debug(f'slide agent metrics = {slide_agent.run_response.metrics if slide_agent.run_response else 0}')
 # logger.debug(f'figure agent metrics = {figure_agent.run_response.metrics if figure_agent.run_response else 0}')
 
-pptx_agent = get_unify_head_agent(pr)
+creator_pptx_agent = get_pptx_agent(pr, CREATOR_PPTX_AGENT_INSTRUCTIONS)
 
-pptx_agent.run('\n'.join(style_output.instructions))
+creator_pptx_agent.run('\n'.join(style_output.instructions))
 
-logger.debug(f'style agnet metrics = {style_agent.run_response.metrics}')
-logger.debug(f'pptx agent metrics = {pptx_agent.run_response.metrics}')
+pr.save('style_test_before_finalizer.pptx')
+
+finalizer_pptx_agent = get_pptx_agent(pr, FINALIZER_PPTX_AGENT_INSTRUCTIONS)
+
+pr.parse_slide_as_images()
+
+with open('test.png', 'wb') as f:
+    f.write(pr.get_slide_image(8))
+
+finalizer_pptx_agent.run(
+    f'Провалидируй данную презентацию, тебе подан сейчас только 14-ый слайд, провалидируй только его: {pr.get_json_schema()[8]}',
+    images=[Image(content=pr.get_slide_image(8), format='png')],
+)
+
+logger.debug(f'style agent metrics = {style_agent.run_response.metrics}')
+logger.debug(f'creator_pptx_agent metrics = {creator_pptx_agent.run_response.metrics}')
+logger.debug(f'finalizer_pptx_agent metrics = {finalizer_pptx_agent.run_response.metrics}')
 
 pr.save('style_test.pptx')

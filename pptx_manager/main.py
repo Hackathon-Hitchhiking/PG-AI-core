@@ -57,8 +57,6 @@ class PPTXManager(
 
         self.source = source
 
-        self.slide_count = len(self.pres.slides)
-
         self.slide_image = {}
 
         self.parse_presentation()
@@ -71,6 +69,10 @@ class PPTXManager(
 
     def parse_slide_as_images(self):
         with TemporaryDirectory() as temp_dir:
+            tmp_pptx = os.path.join(temp_dir, 'input.pptx')
+            with open(tmp_pptx, 'wb') as f:
+                f.write(self.to_bytes())
+
             subprocess.run(
                 [
                     os.environ.get('LIBREOFFICE_PATH', 'libreoffice'),
@@ -79,14 +81,12 @@ class PPTXManager(
                     'pdf',
                     '--outdir',
                     temp_dir,
-                    self.source,
+                    tmp_pptx,
                 ],
                 check=True,
             )
 
-            pptx_filename = os.path.basename(self.source)
-            base_name = os.path.splitext(pptx_filename)[0]
-            pdf_path = os.path.join(temp_dir, base_name + '.pdf')
+            pdf_path = os.path.join(temp_dir, 'input' + '.pdf')
 
             if not os.path.exists(pdf_path):
                 raise FileNotFoundError(f'PDF conversion failed; file not found at {pdf_path}')
@@ -141,7 +141,7 @@ class PPTXManager(
 
     def get_json_schema(self) -> dict:
         pres_json = {}
-        for slide_id in range(1, self.slide_count + 1):
+        for slide_id in range(1, len(self.pres.slides) + 1):
             text_json = self.get_text_frame_json(slide_id)
             image_json = self.get_image_json(slide_id)
             slide_json = self.get_slide_json(slide_id)
@@ -492,6 +492,11 @@ class PPTXManager(
 
         return tasks
 
+    def to_bytes(self) -> bytes:
+        buffer = BytesIO()
+        self.pres.save(buffer)
+        return buffer.getvalue()
+
     def save(self, path: str) -> None:
         self.pres.save(path)
 
@@ -533,8 +538,15 @@ if __name__ == '__main__':
     # result = pr.copy_figure_shape(2, 1, 8)
     # logger.debug(f'rsult = {result}')
 
-    logger.debug(pr.get_tasks_from_slide())
+    logger.debug(f'slide cound before adding = {pr.get_slide_count()}')
+    pr.add_slide_at_position(14, 0)
 
-    logger.debug(f'figure = {json.dumps(pr.get_text_frame_json(8), indent=4)}')
+    schema = pr.get_json_schema()[14]
 
-    pr.save('test_create.pptx')
+    logger.debug(f'schema = {json.dumps(schema, indent=4)}')
+
+    # pr.parse_slide_as_images()
+    #
+    # logger.debug(f"images = {pr.get_slide_image(14)}")
+    # logger.debug(f"slide = {pr.get_slide_count()}")
+    # logger.debug(f"images = {pr.get_slide_image(14)}")

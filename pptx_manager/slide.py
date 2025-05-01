@@ -162,7 +162,7 @@ class SlideManager:
     def parse_slide(self, slide_id: int, slide: Slide) -> None:
         try:
             foreground_color = slide.background.fill.fore_color.rgb
-        except TypeError:
+        except (TypeError, AttributeError):
             # if there is no color on the slide setting the base white color
             foreground_color = [255, 255, 255]
         self.slide_metadata.insert(
