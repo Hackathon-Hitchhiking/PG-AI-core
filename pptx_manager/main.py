@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 
@@ -14,7 +13,7 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 
-from pptx_manager.figure import FigureManager
+from pptx_manager.figure import FigureManager, emu_to_px
 from pptx_manager.image import ImageManager
 from pptx_manager.models import (
     CreateImageFrameOpts,
@@ -53,6 +52,7 @@ class PPTXManager(
             MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_auto_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self._parse_text_shape,
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
+            MSO_SHAPE_TYPE.LINE: self._parse_figure_shape,
         }
 
         self.source = source
@@ -538,12 +538,22 @@ if __name__ == '__main__':
     # result = pr.copy_figure_shape(2, 1, 8)
     # logger.debug(f'rsult = {result}')
 
-    logger.debug(f'slide cound before adding = {pr.get_slide_count()}')
-    pr.add_slide_at_position(14, 0)
+    for shape in pr.pres.slides[6].shapes:
+        auto_shape_type = 'no'
+        try:
+            auto_shape_type = shape.auto_shape_type
+        except Exception:
+            pass
 
-    schema = pr.get_json_schema()[14]
-
-    logger.debug(f'schema = {json.dumps(schema, indent=4)}')
+        print(f"""
+        width: {emu_to_px(shape.width)}
+        height: {emu_to_px(shape.height)}
+        left: {emu_to_px(shape.left)}
+        top: {emu_to_px(shape.top)}
+        
+        type: {shape.shape_type}
+        auto_shape_type: {auto_shape_type}
+        """)
 
     # pr.parse_slide_as_images()
     #

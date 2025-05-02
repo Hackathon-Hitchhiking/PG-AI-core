@@ -26,8 +26,8 @@ def str2bool(value: str) -> bool:
 
 
 if str2bool(os.environ.get('USE_PROXY_URLS', 'True')):
-    http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
-    http_sync_client = httpx.Client(proxy='http://127.0.0.1:1080')
+    http_async_client = httpx.AsyncClient(proxy='socks5://127.0.0.1:12334')
+    http_sync_client = httpx.Client(proxy='socks5://127.0.0.1:12334')
 else:
     http_async_client = None
     http_sync_client = None

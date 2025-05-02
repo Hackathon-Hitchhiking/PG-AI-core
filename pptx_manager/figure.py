@@ -762,7 +762,10 @@ class FigureManager:
             try:
                 if hasattr(shape.fill, 'fore_color') and shape.fill.type != 0:
                     fill_color = tuple(shape.fill.fore_color.rgb)
-            except Exception:
+            except Exception as e:
+                logger.warning(
+                    f'setting the default color for figure on slide {slide_id} and with shape id {shape_id}: {e}'
+                )
                 pass
 
             line_color = (0, 0, 0)

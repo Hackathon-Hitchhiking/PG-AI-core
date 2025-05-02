@@ -7,7 +7,6 @@ from textwrap import dedent
 import httpx
 
 from agno.agent import Agent
-from agno.media import Image
 from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
 from loguru import logger
@@ -19,7 +18,6 @@ from pptx_manager.models import ImageFrameOpts
 from tests.agno_manager import get_pptx_agent
 from tests.constants import (
     CREATOR_PPTX_AGENT_INSTRUCTIONS,
-    FINALIZER_PPTX_AGENT_INSTRUCTIONS,
     STYLE_AGENT_CORE_INSTRUCTIONS_V2,
 )
 
@@ -36,8 +34,8 @@ def str2bool(value: str) -> bool:
 
 
 if str2bool(os.environ.get('USE_PROXY_URLS', 'True')):
-    http_async_client = httpx.AsyncClient(proxy='http://127.0.0.1:1080')
-    http_sync_client = httpx.Client(proxy='http://127.0.0.1:1080')
+    http_async_client = httpx.AsyncClient(proxy='socks5://127.0.0.1:12334')
+    http_sync_client = httpx.Client(proxy='socks5://127.0.0.1:12334')
 else:
     http_async_client = None
     http_sync_client = None
@@ -178,7 +176,7 @@ tasks = pr.get_tasks_from_slide()
 #     )
 
 message = style_agent.run(
-    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для PPTXAgent: {user_request_for_final_test_2}',
+    f'Проанализируй этот пользовательский запрос и эталонную презентацию. Сгенерируй подробные инструкции для PPTXAgent: {user_request_for_final_test_1}',
     # images=slide_images,
 )
 
@@ -201,22 +199,22 @@ creator_pptx_agent = get_pptx_agent(pr, CREATOR_PPTX_AGENT_INSTRUCTIONS)
 
 creator_pptx_agent.run('\n'.join(style_output.instructions))
 
-pr.save('style_test_before_finalizer.pptx')
+# pr.save('style_test_before_finalizer.pptx')
 
-finalizer_pptx_agent = get_pptx_agent(pr, FINALIZER_PPTX_AGENT_INSTRUCTIONS)
-
-pr.parse_slide_as_images()
-
-with open('test.png', 'wb') as f:
-    f.write(pr.get_slide_image(8))
-
-finalizer_pptx_agent.run(
-    f'Провалидируй данную презентацию, тебе подан сейчас только 14-ый слайд, провалидируй только его: {pr.get_json_schema()[8]}',
-    images=[Image(content=pr.get_slide_image(8), format='png')],
-)
+# finalizer_pptx_agent = get_pptx_agent(pr, FINALIZER_PPTX_AGENT_INSTRUCTIONS)
+#
+# pr.parse_slide_as_images()
+#
+# with open('test.png', 'wb') as f:
+#     f.write(pr.get_slide_image(8))
+#
+# finalizer_pptx_agent.run(
+#     f'Провалидируй данную презентацию, тебе подан сейчас только 14-ый слайд, провалидируй только его: {pr.get_json_schema()[8]}',
+#     images=[Image(content=pr.get_slide_image(8), format='png')],
+# )
 
 logger.debug(f'style agent metrics = {style_agent.run_response.metrics}')
 logger.debug(f'creator_pptx_agent metrics = {creator_pptx_agent.run_response.metrics}')
-logger.debug(f'finalizer_pptx_agent metrics = {finalizer_pptx_agent.run_response.metrics}')
+# logger.debug(f'finalizer_pptx_agent metrics = {finalizer_pptx_agent.run_response.metrics}')
 
 pr.save('style_test.pptx')
