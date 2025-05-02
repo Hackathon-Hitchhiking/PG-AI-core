@@ -52,7 +52,6 @@ class PPTXManager(
             MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_auto_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self._parse_text_shape,
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
-            MSO_SHAPE_TYPE.LINE: self._parse_figure_shape,
         }
 
         self.source = source
