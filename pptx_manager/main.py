@@ -239,29 +239,23 @@ class PPTXManager(
             slide = self.pres.slides[slide_id]
             
             slide_json_coordinates = set()
-            print("Данные из slide_json:")
             
             for text_item in slide_json.get('text', []):
                 if 'top' in text_item and 'left' in text_item:
                     coord = (text_item['top'], text_item['left'])
                     slide_json_coordinates.add(coord)
-                    print(f"Текстовый элемент с координатами: top={text_item['top']}, left={text_item['left']}")
+
             
             for image_item in slide_json.get('image', []):
                 if 'top' in image_item and 'left' in image_item:
                     coord = (image_item['top'], image_item['left'])
                     slide_json_coordinates.add(coord)
-                    print(f"Изображение с координатами: top={image_item['top']}, left={image_item['left']}")
             
             for figure_item in slide_json.get('figure', []):
                 if 'top' in figure_item and 'left' in figure_item:
                     coord = (figure_item['top'], figure_item['left'])
                     slide_json_coordinates.add(coord)
-                    print(f"Фигура с координатами: top={figure_item['top']}, left={figure_item['left']}")
-            
-            print(f"\nКоординаты из slide_json: {slide_json_coordinates}")
-            
-            print("\nФигуры на слайде:")
+
             shapes_to_delete = []
             tolerance = 4  # Допустимая погрешность в пикселях
             
