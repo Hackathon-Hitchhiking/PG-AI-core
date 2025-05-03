@@ -1,12 +1,13 @@
 import json
 import os
 import subprocess
+import copy
 
 from collections import defaultdict
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from textwrap import dedent
-
+from pptx.enum.shapes import MSO_SHAPE
 from dotenv import load_dotenv
 from loguru import logger
 from pdf2image import convert_from_path
@@ -47,10 +48,11 @@ class PPTXManager(
         FigureManager.__init__(self)
 
         self.pres = Presentation(source)
-
         self.parse_choice = {
             MSO_SHAPE_TYPE.PICTURE: self._parse_image_shape,
-            MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_auto_shape,
+            MSO_SHAPE_TYPE.AUTO_SHAPE: self._parse_auto_shape, 
+            MSO_SHAPE_TYPE.FREEFORM: self._parse_figure_shape,
+            MSO_SHAPE_TYPE.LINE: self._parse_line_shape,
             MSO_SHAPE_TYPE.TEXT_BOX: self._parse_text_shape,
             MSO_SHAPE_TYPE.GROUP: self.parse_group_shape,
         }
@@ -58,9 +60,8 @@ class PPTXManager(
         self.source = source
 
         self.slide_count = len(self.pres.slides)
-
+        
         self.slide_image = {}
-
         self.parse_presentation()
 
         if parse_slide_image:
@@ -126,7 +127,7 @@ class PPTXManager(
         if result is not None:
             self.increase_shape_count(slide_id, 1)
             return
-
+        
         match shape.auto_shape_type:
             case MSO_AUTO_SHAPE_TYPE.RECTANGLE:
                 result = self._parse_figure_shape(slide_id, shape_id, shape)
@@ -138,6 +139,74 @@ class PPTXManager(
                 if result is not None:
                     self.increase_shape_count(slide_id, 1)
                     return
+            case MSO_AUTO_SHAPE_TYPE.NON_ISOSCELES_TRAPEZOID:
+                result = self._parse_figure_shape(slide_id, shape_id, shape)
+                if result is not None:
+                    self.increase_shape_count(slide_id, 1)
+                    return
+            case MSO_AUTO_SHAPE_TYPE.TRAPEZOID:
+                result = self._parse_figure_shape(slide_id, shape_id, shape)
+                if result is not None:
+                    self.increase_shape_count(slide_id, 1)
+                    return
+                
+    def set_base_format(self, presentraion_info: dict, slide_id: int) -> dict: 
+        def create_signature(element, element_type):
+            signature = {
+                'left': round(element['left'], 2),
+                'top': round(element['top'], 2),
+                'width': round(element['width'], 2),
+                'height': round(element['height'], 2)
+            }
+            if element_type == 'text':
+                style_keys = [
+                    'font_name', 'font_size', 'bold', 'italic', 
+                    'underline', 'strike', 'color', 'align', 'vertical_align'
+                ]
+                for key in style_keys:
+                    value = element.get(key)
+                    if hasattr(value, 'value'):
+                        value = value.value
+                    if isinstance(value, list):
+                        value = tuple(value)
+                    signature[key] = value
+            elif element_type == 'figure':
+                style_keys = [
+                    'shape_type', 'color', 'line_color', 
+                    'line_width', 'rounding', 'rotation'
+                ]
+                for key in style_keys:
+                    value = element.get(key)
+                    if isinstance(value, list):
+                        value = tuple(value)
+                    signature[key] = value
+            elif element_type == 'image':
+                pass
+            return tuple(sorted(signature.items()))
+
+        element_counter = defaultdict(set)
+        slide_keys = [k for k in presentraion_info.keys() if isinstance(k, int)]
+        for slide_num in slide_keys:
+            slide = presentraion_info[slide_num]
+            for element_type in ['text', 'image', 'figure']:
+                for element in slide.get(element_type, []):
+                    sig = (element_type, create_signature(element, element_type))
+                    element_counter[sig].add(slide_num)
+
+        total_slides = len(slide_keys)
+        repeated_signatures = {sig for sig, slides in element_counter.items() if len(slides) == total_slides}
+
+        first_slide = presentraion_info[slide_keys[0]]
+        result = {'text': [], 'image': [], 'figure': [], 'slide': copy.deepcopy(first_slide.get('slide', {}))}
+        for element_type in ['text', 'image', 'figure']:
+            for element in first_slide.get(element_type, []):
+                sig = (element_type, create_signature(element, element_type))
+                if sig in repeated_signatures:
+                    cloned = copy.deepcopy(element)
+                    if element_type == 'text':
+                        cloned['text'] = 'TEXT'
+                    result[element_type].append(cloned)
+        return result
 
     def get_json_schema(self) -> dict:
         pres_json = {}
@@ -150,6 +219,182 @@ class PPTXManager(
             pres_json[slide_id] = {'text': text_json, 'image': image_json, 'slide': slide_json, 'figure': figure_json}
 
         return pres_json
+
+    def create_slide_from_json(self, slide_id: int, slide_json: dict, presentation_info: dict) -> str:
+        """
+        Создает новый слайд по JSON-схеме и вставляет его в презентацию под номером slide_id (1-based).
+        Оставляет на слайде только те элементы, которые совпадают по shape_id в presentation_info и slide_json.
+
+        Args:
+            slide_id (int): Позиция для вставки нового слайда (1-based).
+            slide_json (dict): JSON-схема слайда с элементами.
+            presentation_info (dict): Информация о презентации с данными о фигурах.
+
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        try:
+            # Дублируем первый слайд на указанную позицию
+            self.duplicate_slide(1, slide_id)
+            slide = self.pres.slides[slide_id]
+            
+            slide_json_coordinates = set()
+            print("Данные из slide_json:")
+            
+            for text_item in slide_json.get('text', []):
+                if 'top' in text_item and 'left' in text_item:
+                    coord = (text_item['top'], text_item['left'])
+                    slide_json_coordinates.add(coord)
+                    print(f"Текстовый элемент с координатами: top={text_item['top']}, left={text_item['left']}")
+            
+            for image_item in slide_json.get('image', []):
+                if 'top' in image_item and 'left' in image_item:
+                    coord = (image_item['top'], image_item['left'])
+                    slide_json_coordinates.add(coord)
+                    print(f"Изображение с координатами: top={image_item['top']}, left={image_item['left']}")
+            
+            for figure_item in slide_json.get('figure', []):
+                if 'top' in figure_item and 'left' in figure_item:
+                    coord = (figure_item['top'], figure_item['left'])
+                    slide_json_coordinates.add(coord)
+                    print(f"Фигура с координатами: top={figure_item['top']}, left={figure_item['left']}")
+            
+            print(f"\nКоординаты из slide_json: {slide_json_coordinates}")
+            
+            print("\nФигуры на слайде:")
+            shapes_to_delete = []
+            tolerance = 4  # Допустимая погрешность в пикселях
+            
+            for i, shape in enumerate(slide.shapes):
+                try:
+                    top = shape.top / 9525 
+                    left = shape.left / 9525  
+
+                    should_keep = False
+                    for json_top, json_left in slide_json_coordinates:
+                        if (abs(top - json_top) <= tolerance and 
+                            abs(left - json_left) <= tolerance):
+                            should_keep = True
+                            break
+                    
+                    if should_keep:
+                        continue
+                    
+                    shapes_to_delete.append(i)
+                except Exception as e:
+                    shapes_to_delete.append(i)
+            
+            for idx in sorted(shapes_to_delete, reverse=True):
+                try:
+                    shape = slide.shapes[idx]
+                    sp = shape._element
+                    sp.getparent().remove(sp)
+                except Exception as e:
+                    pass
+            
+            return f"Слайд {slide_id} успешно создан. Оставлены только элементы с совпадающими координатами (с погрешностью ±{tolerance} пикселей)."
+        except Exception as e:
+            return f"Ошибка при создании слайда {slide_id}: {str(e)}"
+
+
+
+
+    def _get_shape_id(self, shape):
+        try:
+            # Вариант 1: shape_id как свойство
+            if hasattr(shape, 'shape_id'):
+                return shape.shape_id
+        except:
+            return None
+        
+
+    def _get_image_data_by_id(self, shape_id):
+        image_registry = getattr(self, 'image_registry', {})
+        
+        if shape_id in image_registry:
+            if isinstance(image_registry[shape_id], bytes):
+                return image_registry[shape_id]
+            
+            if isinstance(image_registry[shape_id], str):
+                try:
+                    with open(image_registry[shape_id], 'rb') as f:
+                        return f.read()
+                except Exception as e:
+                    logger.error(f"Ошибка при чтении файла изображения: {e}")
+        
+        return None
+
+    def create_slide_base_format(self, slide_id: int) -> str:
+        """
+        Создает слайд с базовым форматированием из JSON-схемы.
+        
+        Args:
+            slide_id (int): Позиция для вставки нового слайда (1-based).
+            
+        Returns:
+            str: Сообщение о результате операции.
+        """
+        presentation_info = self.get_json_schema()
+        base_format_json = self.set_base_format(presentation_info=presentation_info)
+        return self.create_slide_from_json(slide_id, base_format_json, presentation_info)
+                    
+    def set_base_format(self, presentation_info: dict) -> dict: 
+                def create_signature(element, element_type):
+                    signature = {
+                        'left': round(element['left'], 2),
+                        'top': round(element['top'], 2),
+                        'width': round(element['width'], 2),
+                        'height': round(element['height'], 2)
+                    }
+                    if element_type == 'text':
+                        style_keys = [
+                            'font_name', 'font_size', 'bold', 'italic', 
+                            'underline', 'strike', 'color', 'align', 'vertical_align'
+                        ]
+                        for key in style_keys:
+                            value = element.get(key)
+                            if hasattr(value, 'value'):
+                                value = value.value
+                            if isinstance(value, list):
+                                value = tuple(value)
+                            signature[key] = value
+                    elif element_type == 'figure':
+                        style_keys = [
+                            'shape_type', 'color', 'line_color', 
+                            'line_width', 'rounding', 'rotation'
+                        ]
+                        for key in style_keys:
+                            value = element.get(key)
+                            if isinstance(value, list):
+                                value = tuple(value)
+                            signature[key] = value
+                    elif element_type == 'image':
+                        pass
+                    return tuple(sorted(signature.items()))
+
+                element_counter = defaultdict(set)
+                slide_keys = [k for k in presentation_info.keys() if isinstance(k, int)]
+                for slide_num in slide_keys:
+                    slide = presentation_info[slide_num]
+                    for element_type in ['text', 'image', 'figure']:
+                        for element in slide.get(element_type, []):
+                            sig = (element_type, create_signature(element, element_type))
+                            element_counter[sig].add(slide_num)
+
+                total_slides = len(slide_keys)
+                repeated_signatures = {sig for sig, slides in element_counter.items() if len(slides) == total_slides}
+
+                first_slide = presentation_info[slide_keys[0]]
+                result = {'text': [], 'image': [], 'figure': [], 'slide': copy.deepcopy(first_slide.get('slide', {}))}
+                for element_type in ['text', 'image', 'figure']:
+                    for element in first_slide.get(element_type, []):
+                        sig = (element_type, create_signature(element, element_type))
+                        if sig in repeated_signatures:
+                            cloned = copy.deepcopy(element)
+                            if element_type == 'text':
+                                cloned['text'] = 'TEXT'
+                            result[element_type].append(cloned)
+                return result
 
     def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
         """
@@ -499,19 +744,9 @@ class PPTXManager(
 if __name__ == '__main__':
     load_dotenv()
     pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
+    pr.create_slide_base_format(slide_id=2)
 
-    # rect1 = pr.add_figure_shape(
-    #     2,
-    #     MSO_SHAPE.ROUNDED_RxwzECTANGLE,
-    #     300,
-    #     500,
-    #     100,
-    #     500,
-    #     color=(255, 128, 255),
-    #     line_color=(255, 0, 255),
-    #     line_width=3.0,
-    #     rounding=0.1,
-    # )
+    pr.save("TestA.pptx")
     ## ДЛЯ КИРИЛЛА [update_shape_color, update_shape_position, update_shape_transparency, set_shape_rounding]
 
     # pr.update_shape_color(3, 1, color=[255, 255, 0])
@@ -533,8 +768,6 @@ if __name__ == '__main__':
     # result = pr.copy_figure_shape(2, 1, 8)
     # logger.debug(f'rsult = {result}')
 
-    logger.debug(pr.get_tasks_from_slide())
+    #logger.debug(pr.get_tasks_from_slide())
 
-    logger.debug(f'figure = {json.dumps(pr.get_text_frame_json(8), indent=4)}')
-
-    pr.save('test_create.pptx')
+    #logger.debug(f'figure = {json.dumps(pr.get_text_frame_json(8), indent=4)}')

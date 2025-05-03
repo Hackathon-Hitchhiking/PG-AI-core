@@ -4,7 +4,9 @@ from collections.abc import Iterator
 from loguru import logger
 from pptx import Presentation
 from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE
+from pptx.enum.dml import MSO_FILL_TYPE, MSO_LINE
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE, MSO_AUTO_SHAPE_TYPE
+from pptx.shapes.connector import Connector
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
 from pptx.util import Emu
@@ -41,7 +43,7 @@ class GeometricShape(BaseModel):
     transparency: float = 0.0
     rotation: float = 0.0
     adjustments: list[int] = []
-    shape_manager: Shape | None = None
+    shape_manager: Shape| Connector | None = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -66,7 +68,6 @@ class FigureManager:
 
     def load_presentation(self, source_path: str) -> None:
         self.pres = Presentation(source_path)
-        self._parse_existing_shapes()
 
     def create_presentation(self) -> None:
         self.pres = Presentation()
@@ -78,6 +79,14 @@ class FigureManager:
             raise ValueError('Презентация не загружена или не создана')
 
     def get_figure_frame_json(self, slide_id: int) -> list[dict]:
+        for shape in  self.pres.slides[0].shapes:
+            auto_shape_type = "no"
+            try:
+                auto_shape_type = shape.auto_shape_type
+            except Exception as e:
+                pass
+
+
         return [shape.model_dump(exclude={'shape_manager'}) for shape in self.figure_shapes[slide_id]]
 
     def get_all_figure_frame_json(self) -> dict:
@@ -158,7 +167,7 @@ class FigureManager:
             width (float): Ширина фигуры в пикселях.
             height (float): Высота фигуры в пикселях.
             color (list[int]): Цвет заливки фигуры в формате RGB (по умолчанию белый: [255, 255, 255]).
-            line_color (list[int]): Цвет контура фигуры в формате RGB (по умолчанию черный: (0, 0, 0)).
+            line_color (list[int]): Цвет контура фигуры в формате RGB (по умолчанию черный: (0, 0, 0)), если цвет не указан передавай (0, 0, 0).
             line_width (float): Толщина контура фигуры в пикселях (по умолчанию 1.0).
             rounding (float): Значение закругления углов прямоугольника от 0.0 до 1.0 (по умолчанию 0.0).
             transparency (float): Прозрачность фигуры от 0.0 до 1.0 (по умолчанию 0.0).
@@ -192,14 +201,7 @@ class FigureManager:
         width_emu = Emu(px_to_emu(width))
         height_emu = Emu(px_to_emu(height))
 
-        # TODO delete this auto review
-        # sending the figure to the background
         shape = slide.shapes.add_shape(shape_type, left_emu, top_emu, width_emu, height_emu)
-
-        shape_tree = slide.shapes._spTree
-        shape_element = shape_tree[slide.shapes.index(shape)]
-        shape_tree.remove(shape_element)
-        shape_tree.insert(0, shape_element)
 
         self.shape_id_counter[slide_id] += 1
         shape_id = self.shape_id_counter[slide_id]
@@ -727,65 +729,90 @@ class FigureManager:
         return self.pres.slides[slide_id - 1]
 
     def _parse_existing_shapes(self) -> None:
-        """
-        Анализирует существующие фигуры из загруженной презентации.
-
-        Проходит по всем слайдам и фигурам в загруженной презентации,
-        создает для них объекты GeometricShape и добавляет их в коллекцию фигур менеджера.
-        """
         if not self.pres:
             return
 
         for slide_idx, slide in enumerate(self.pres.slides, 1):
             shape_idx = 1
             for shape in slide.shapes:
+                # Расширенная обработка линий и коннекторов
                 if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
                     self._parse_figure_shape(slide_idx, shape_idx, shape)
                     shape_idx += 1
-                    self.shape_id_counter[slide_idx] = max(self.shape_id_counter[slide_idx], shape_idx)
+                elif shape.shape_type == MSO_SHAPE_TYPE.LINE or isinstance(shape, Connector):
+                    logger.debug(f"Обнаружена линия/коннектор: {shape.shape_type}")
+                    self._parse_line_shape(slide_idx, shape_idx, shape)
+                    shape_idx += 1
+                self.shape_id_counter[slide_idx] = max(
+                    self.shape_id_counter.get(slide_idx, 0), shape_idx
+                )
 
     def _parse_figure_shape(self, slide_id: int, shape_id: int, shape: Shape) -> GeometricShape | None:
         """
         Анализирует фигуру из презентации и добавляет ее в коллекцию.
-
-        Извлекает все свойства фигуры, создает объект GeometricShape
-        и добавляет его в коллекцию фигур менеджера.
-
-        Аргументы:
-            slide_id (int): ID слайда, содержащего фигуру.
-            shape_id (int): ID фигуры.
-            shape (Shape): Объект фигуры из python-pptx.
-
-        Возвращает:
-            Optional[GeometricShape]: Созданный объект фигуры или None в случае ошибки.
         """
+
         try:
             left = emu_to_px(shape.left)
             top = emu_to_px(shape.top)
             width = emu_to_px(shape.width)
             height = emu_to_px(shape.height)
+            shape_type = (
+                shape.auto_shape_type 
+                if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE 
+                else shape.shape_type
+            )
 
-            fill_color = [0, 0, 0]
+            TRAPEZOID_TYPES = {
+                MSO_AUTO_SHAPE_TYPE.TRAPEZOID,
+                MSO_AUTO_SHAPE_TYPE.NON_ISOSCELES_TRAPEZOID,
+                MSO_SHAPE_TYPE.FREEFORM,
+            }
+
+            # Определяем тип фигуры
+            is_pentagon = shape_type == MSO_AUTO_SHAPE_TYPE.PENTAGON
+            is_circle = shape_type in [MSO_AUTO_SHAPE_TYPE.OVAL]
+            is_trapezoid = shape_type in TRAPEZOID_TYPES
+            is_rounded_rectangle = shape_type == MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE
+            is_diamond = shape_type == MSO_AUTO_SHAPE_TYPE.DIAMOND
+            is_right_arrow = shape_type == MSO_AUTO_SHAPE_TYPE.RIGHT_ARROW
+            is_hexagon = shape_type == MSO_AUTO_SHAPE_TYPE.HEXAGON
+
+            fill_color = None
             try:
-                if hasattr(shape.fill, 'fore_color') and shape.fill.type != 0:
-                    fill_color = tuple(shape.fill.fore_color.rgb)
-            except Exception:
-                pass
+                fill = shape.fill
+                if fill.type == MSO_FILL_TYPE.SOLID:
+                    if fill.fore_color and fill.fore_color.rgb is not None:
+                        fill_color = tuple(fill.fore_color.rgb)
+                    # Если цвет задан через тему, можно попробовать:
+                    elif fill.fore_color.type == 2:  # THEME
+                        # Можно попробовать получить RGB через fill.fore_color.theme_color
+                        fill_color = [255, 255, 255]  # или другой дефолт
+                else:
+                    fill_color = [255, 255, 255]  # Нет заливки
+            except Exception as e:
+                logger.debug(f"Не удалось получить цвет заливки: {e}")
+                fill_color = None
 
-            line_color = (0, 0, 0)
+            from pptx.enum.dml import MSO_LINE
+            line_color = None
             try:
-                if hasattr(shape.line, 'color') and shape.line.color is not None:
-                    line_color = tuple(shape.line.color.rgb)  ## CHANGE
-            except Exception:
-                pass
+                line = shape.line
+                if line.fill.type == MSO_FILL_TYPE.SOLID and line.color and line.color.rgb is not None:
+                    line_color = tuple(line.color.rgb)
+                else:
+                    line_color = [255, 255, 255]
+            except Exception as e:
+                logger.debug(f"Не удалось получить цвет линии: {e}")
+                line_color = [255, 255, 255]
 
-            line_width = 1.0
+            line_width = 0.0
             try:
                 if hasattr(shape.line, 'width') and shape.line.width is not None:
                     line_width = emu_to_px(shape.line.width)
             except Exception as e:
                 logger.debug(f'Не удалось получить ширину линии: {e}')
-
+            
             adjustments = []
             try:
                 if hasattr(shape, 'adjustment_values') and shape.adjustment_values:
@@ -793,19 +820,23 @@ class FigureManager:
             except Exception as e:
                 logger.debug(f'Не удалось получить настройки формы: {e}')
 
-            # Extract rounding value from adjustments if available
             rounding = 0.0
             try:
                 if adjustments and len(adjustments) > 0:
-                    # Convert from PowerPoint's scale (0-100000) to normalized scale (0.0-1.0)
-                    rounding = adjustments[0] / 100000.0
+                    if is_pentagon or is_trapezoid or is_rounded_rectangle or is_diamond or is_right_arrow or is_hexagon:
+                        # Для этих фигур используем первое значение adjustments, если оно есть
+                        rounding = adjustments[0] / 100000.0
+                    elif is_circle:
+                        rounding = 0.0
+                    else:
+                        rounding = adjustments[0] / 100000.0
             except Exception as e:
                 logger.debug(f'Не удалось получить значение скругления: {e}')
 
             geometric_shape = GeometricShape(
                 shape_id=shape_id,
                 slide_id=slide_id,
-                shape_type=shape.auto_shape_type,
+                shape_type=shape_type,
                 left=left,
                 top=top,
                 width=width,
@@ -824,6 +855,59 @@ class FigureManager:
         except Exception as e:
             logger.warning(f'Ошибка при анализе фигуры: {e}')
             return None
+        
+
+    def _parse_line_shape(self, slide_id: int, shape_id: int, shape: Shape) -> GeometricShape | None:
+        """
+        Анализирует линию из презентации и добавляет ее в коллекцию.
+        """
+        try:
+            left = emu_to_px(shape.left)
+            top = emu_to_px(shape.top)
+            width = emu_to_px(shape.width)
+            height = emu_to_px(shape.height)
+
+            if shape.shape_type != MSO_SHAPE_TYPE.LINE:
+                return None
+        
+
+            line_color = (0, 0, 0)
+            try:
+                if hasattr(shape.line, 'color') and shape.line.color is not None:
+                    line_color = tuple(shape.line.color.rgb)
+            except Exception:
+                pass
+
+            line_width = 0.0
+            try:
+                if hasattr(shape.line, 'width') and shape.line.width is not None:
+                    line_width = emu_to_px(shape.line.width)
+            except Exception as e:
+                logger.debug(f'Не удалось получить ширину линии: {e}')
+
+            geometric_shape = GeometricShape(
+                shape_id=shape_id,
+                slide_id=slide_id,
+                shape_type=MSO_SHAPE_TYPE.LINE,
+                left=left,
+                top=top,
+                width=width,
+                height=height,
+                color=[0, 0, 0],
+                line_color=line_color,
+                line_width=line_width,
+                adjustments=[],
+                rounding=0.0,
+                shape_manager=shape,
+            )
+
+            self.figure_shapes[slide_id].append(geometric_shape)
+            return geometric_shape
+
+        except Exception as e:
+            logger.warning(f'Ошибка при анализе линии: {e}')
+            return None
+
 
     def _get_shape_by_id(self, slide_id: int, shape_id: int) -> GeometricShape | None:
         """
@@ -1042,19 +1126,8 @@ class FigureManager:
 
     def test(self, source_path: str, target_path: str = 'test_output.pptx'):
         self.load_presentation(source_path)
-
-        rect1 = self.add_figure_shape(
-            2,
-            MSO_SHAPE.ROUNDED_RECTANGLE,
-            300,
-            500,
-            100,
-            500,
-            color=(255, 128, 255),
-            line_color=(255, 0, 255),
-            line_width=3.0,
-            rounding=0.1,
-        )
+        #self.delete_shape(1, 1)
+        #self.delete_shape(1, 3)
         ## ДЛЯ КИРИЛЛА [update_shape_color, update_shape_position, update_shape_transparency, set_shape_rounding]
 
         # self.update_shape_position(3, 1, rounding = 0.5, color=(255, 0, 255))
@@ -1076,4 +1149,4 @@ class FigureManager:
 
 if __name__ == '__main__':
     manager = FigureManager()
-    manager.test('test_data/test_dit.pptx')
+    manager.test('test_data/final_test_1.pptx')
