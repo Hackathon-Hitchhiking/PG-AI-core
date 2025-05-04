@@ -1,5 +1,3 @@
-import colorsys
-
 from collections import defaultdict
 from collections.abc import Iterator
 
@@ -57,46 +55,40 @@ class TextFrameManager:
 
         try:
             srgb = font_color.rgb
+            if srgb is not None:
+                return hex_to_rgb(str(srgb))
         except AttributeError:
-            srgb = None
-
-        if srgb is not None:
-            return hex_to_rgb(str(srgb))
+            pass
 
         try:
             theme_color = font_color.theme_color
+            if theme_color is None:
+                return (0, 0, 0)
         except AttributeError:
-            theme_color = None
-
-        # if the theme color and rgb is None its the black color
-        if theme_color is None:
-            return 0, 0, 0
-
-        brightness = font_color.brightness
+            return (0, 0, 0)
 
         accent = theme_color.xml_value
-        xpath = f'a:themeElements/a:clrScheme/a:{accent}/a:srgbClr/@val'
-
+        xpath = f'.//a:themeElements/a:clrScheme/a:{accent}/a:srgbClr'
         slide_master_part = slide.slide_layout.slide_master.part
         theme_part = slide_master_part.part_related_by(RT.THEME)
         theme = parse_xml(theme_part.blob)
 
-        try:
-            hex_color = theme.xpath(xpath)[0]
-        except IndexError:
-            return 0, 0, 0
+        srgbClr = theme.find(xpath, namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'})
+        if srgbClr is not None and 'val' in srgbClr.attrib:
+            hex_color = srgbClr.attrib['val']
+            base_color = np.array(ImageColor.getcolor(f'#{hex_color}', 'RGB'))
+        else:
+            return (0, 0, 0)
 
-        srgb = np.array(ImageColor.getcolor(f'#{hex_color}', 'RGB'))
+        brightness = font_color.brightness
+        if brightness is not None and brightness != 0:
+            if brightness > 0:
+                base_color = base_color + (255 - base_color) * brightness
+            elif brightness < 0:
+                base_color = base_color * (1 + brightness)
+            base_color = np.clip(base_color, 0, 255).astype(int)
 
-        srgb = srgb / 255
-        h, luminance, s = colorsys.rgb_to_hls(*srgb)
-        lum_mod = 100000 * (1 - brightness)
-        lum_off = 100000 * brightness
-        luminance = luminance * (lum_mod / 100000) + (lum_off / 100000)
-        srgb = np.array(colorsys.hls_to_rgb(h, luminance, s))
-        srgb = (srgb * 255).round(0).astype(int)
-
-        return tuple(srgb)
+        return tuple(base_color)
 
     def _get_font_size(self, font: Font) -> float:
         font_size = 12
@@ -341,4 +333,4 @@ class TextFrameManager:
 if __name__ == '__main__':
     fm = TextFrameManager()
 
-    fm.test('../test_data/final_test_1.pptx')
+    fm.test('test_data/final_test_1.pptx')
