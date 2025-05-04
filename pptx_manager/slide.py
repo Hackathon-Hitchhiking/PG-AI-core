@@ -504,73 +504,73 @@ class SlideManager:
         if slide_id in self.slide_metadata:
             del self.slide_metadata[slide_id]
 
-    def add_slide_at_position(
-        self, position: int, layout_index: int = 0, background_color: list[int] | None = None
-    ) -> str:
-        """
-        Создает новый слайд в указанную позицию с заданным макетом и заголовком.
+    # def add_slide_at_position(
+    #     self, position: int, layout_index: int = 0, background_color: list[int] | None = None
+    # ) -> str:
+    #     """
+    #     Создает новый слайд в указанную позицию с заданным макетом и заголовком.
 
-        Создает новый слайд и вставляет его в указанную позицию презентации,
-        с возможностью установки макета и заголовка.
+    #     Создает новый слайд и вставляет его в указанную позицию презентации,
+    #     с возможностью установки макета и заголовка.
 
-        -   Позиция указывается в формате 1-based индекса.
-        -   Макет выбирается из доступных макетов презентации.
-        -   Заголовок устанавливается только при наличии placeholder'а в макете.
-        -   Обновляет внутренние метаданные слайдов.
+    #     -   Позиция указывается в формате 1-based индекса.
+    #     -   Макет выбирается из доступных макетов презентации.
+    #     -   Заголовок устанавливается только при наличии placeholder'а в макете.
+    #     -   Обновляет внутренние метаданные слайдов.
 
-        Args:
-            position (int): Позиция для вставки слайда (1-based).
-                -   Допустимый диапазон: [1, количество_слайдов + 1]
-            layout_index (int, optional): Индекс используемого макета.
-                -   По умолчанию: 0 (первый доступный макет)
-                -   Допустимый диапазон: [0, количество_макетов - 1]
-            background_color: list[int]: Цвет заднего фона слайда
+    #     Args:
+    #         position (int): Позиция для вставки слайда (1-based).
+    #             -   Допустимый диапазон: [1, количество_слайдов + 1]
+    #         layout_index (int, optional): Индекс используемого макета.
+    #             -   По умолчанию: 0 (первый доступный макет)
+    #             -   Допустимый диапазон: [0, количество_макетов - 1]
+    #         background_color: list[int]: Цвет заднего фона слайда
 
-        Returns:
-            str: Сообщение о результате операции в формате:
-                "Slide {position} was added"
+    #     Returns:
+    #         str: Сообщение о результате операции в формате:
+    #             "Slide {position} was added"
 
-        Raises:
-            ValueError: При отсутствии загруженной презентации, неверной позиции или недопустимом индексе макета.
-        """
-        if background_color is None:
-            background_color = [255, 255, 255]
+    #     Raises:
+    #         ValueError: При отсутствии загруженной презентации, неверной позиции или недопустимом индексе макета.
+    #     """
+    #     if background_color is None:
+    #         background_color = [255, 255, 255]
 
-        if not self.pres:
-            msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
-            raise ValueError(msg)
+    #     if not self.pres:
+    #         msg = 'Презентация не загружена. Сначала используйте метод `load_presentation`.'
+    #         raise ValueError(msg)
 
-        max_position = len(self.pres.slides) + 1
-        if not (1 <= position <= max_position):
-            msg = f'Недопустимая позиция {position}. Должна быть между 1 и {max_position}.'
-            raise ValueError(msg)
+    #     max_position = len(self.pres.slides) + 1
+    #     if not (1 <= position <= max_position):
+    #         msg = f'Недопустимая позиция {position}. Должна быть между 1 и {max_position}.'
+    #         raise ValueError(msg)
 
-        if not (0 <= layout_index < len(self.pres.slide_layouts)):
-            msg = (
-                f'Недопустимый индекс макета {layout_index}. Должен быть между 0 и {len(self.pres.slide_layouts) - 1}.'
-            )
-            raise ValueError(msg)
+    #     if not (0 <= layout_index < len(self.pres.slide_layouts)):
+    #         msg = (
+    #             f'Недопустимый индекс макета {layout_index}. Должен быть между 0 и {len(self.pres.slide_layouts) - 1}.'
+    #         )
+    #         raise ValueError(msg)
 
-        logger.debug(f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}')
+    #     logger.debug(f'Вызов add_slide_at_position с параметрами: позиция={position}, индекс_макета={layout_index}')
 
-        slide_layout = self.pres.slide_layouts[layout_index]
-        new_slide = self.pres.slides.add_slide(slide_layout)
-        new_slide.background.fill.solid()
-        new_slide.background.fill.fore_color.rgb = RGBColor(
-            background_color[0], background_color[1], background_color[2]
-        )
+    #     slide_layout = self.pres.slide_layouts[layout_index]
+    #     new_slide = self.pres.slides.add_slide(slide_layout)
+    #     new_slide.background.fill.solid()
+    #     new_slide.background.fill.fore_color.rgb = RGBColor(
+    #         background_color[0], background_color[1], background_color[2]
+    #     )
 
-        slides = self.pres.slides._sldIdLst
-        new_slide_id = slides[-1]
-        del slides[-1]
-        slides.insert(position - 1, new_slide_id)
+    #     slides = self.pres.slides._sldIdLst
+    #     new_slide_id = slides[-1]
+    #     del slides[-1]
+    #     slides.insert(position - 1, new_slide_id)
 
-        self.slide_metadata.insert(
-            position,
-            SlideFrame(slide_manager=new_slide, shape_count=0, background_color=background_color),
-        )
+    #     self.slide_metadata.insert(
+    #         position,
+    #         SlideFrame(slide_manager=new_slide, shape_count=0, background_color=background_color),
+    #     )
 
-        return f'Слайд {position} был добавлен'
+    #     return f'Слайд {position} был добавлен'
 
     def test(self, source: str) -> None:
         self.load_presentation(source)

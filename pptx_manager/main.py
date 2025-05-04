@@ -295,7 +295,6 @@ class PPTXManager(
 
     def _get_shape_id(self, shape):
         try:
-            # Вариант 1: shape_id как свойство
             if hasattr(shape, 'shape_id'):
                 return shape.shape_id
         except:
@@ -317,19 +316,32 @@ class PPTXManager(
 
         return None
 
-    def create_slide_base_format(self, slide_id: int) -> str:
+    def add_slide_at_position(self, slide_id: int) -> str:
         """
-        Создает слайд с базовым форматированием из JSON-схемы.
+        Создает новый слайд в указанную позицию.
+
+        Создает новый слайд и вставляет его в указанную позицию презентации,
+        с возможностью установки макета и заголовка.
+
+        -   Позиция указывается в формате 1-based индекса.
+        -   Обновляет внутренние метаданные слайдов.
 
         Args:
-            slide_id (int): Позиция для вставки нового слайда (1-based).
+            position (int): Позиция для вставки слайда (1-based).
+                -   Допустимый диапазон: [1, количество_слайдов + 1]
 
         Returns:
-            str: Сообщение о результате операции.
+            str: Сообщение о результате операции в формате:
+                "Slide {position} was added"
+
+        Raises:
+            ValueError: При отсутствии загруженной презентации, неверной позиции.
         """
         presentation_info = self.get_json_schema()
         base_format_json = self.set_base_format(presentation_info=presentation_info)
-        return self.create_slide_from_json(slide_id, base_format_json, presentation_info)
+        self.create_slide_from_json(slide_id, base_format_json, presentation_info)
+        self.parse_presentation()
+        return "add new slide"
 
     def set_base_format(self, presentation_info: dict) -> dict:
         def create_signature(element, element_type):
@@ -745,11 +757,11 @@ class PPTXManager(
 
 if __name__ == '__main__':
     load_dotenv()
-    pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
-    pr.create_slide_base_format(slide_id=2)
-
+    pr = PPTXManager("test_data/final_test_1.pptx")
+    pr.add_slide_at_position(slide_id=2)
+    # presentation_info = pr.get_json_schema()
+    # print(presentation_info)
     pr.save('TestA.pptx')
-    ## ДЛЯ КИРИЛЛА [update_shape_color, update_shape_position, update_shape_transparency, set_shape_rounding]
 
     # pr.update_shape_color(3, 1, color=[255, 255, 0])
     # pr.update_shape_line(3, rect1.shape_id, color=(255, 0, 0), width=3.0)
