@@ -342,7 +342,7 @@ class PPTXManager(
         print(base_format_json)
         self.create_slide_from_json(slide_id, base_format_json, presentation_info)
         self.parse_presentation()
-        return "add new slide"
+        return 'add new slide'
 
     def set_base_format(self, presentation_info: dict) -> dict:
         def create_signature(element, element_type):
@@ -382,8 +382,9 @@ class PPTXManager(
                 pass
             return tuple(sorted(signature.items()))
 
-        from collections import defaultdict
         import copy
+
+        from collections import defaultdict
 
         element_counter = defaultdict(set)
         slide_keys = [k for k in presentation_info if isinstance(k, int)]
@@ -396,8 +397,7 @@ class PPTXManager(
                     sig = (element_type, create_signature(element, element_type))
                     element_counter[sig].add(slide_num)
 
-        repeated_signatures = {sig for sig, slides in element_counter.items()
-                            if len(slides) >= total_slides - 1}
+        repeated_signatures = {sig for sig, slides in element_counter.items() if len(slides) >= total_slides - 1}
 
         slide_common_elements_count = {}
         for slide_num in slide_keys:
@@ -413,12 +413,7 @@ class PPTXManager(
         template_slide_num = max(slide_common_elements_count, key=slide_common_elements_count.get)
         template_slide = presentation_info[template_slide_num]
 
-        result = {
-            'text': [],
-            'image': [],
-            'figure': [],
-            'slide': copy.deepcopy(template_slide.get('slide', {}))
-        }
+        result = {'text': [], 'image': [], 'figure': [], 'slide': copy.deepcopy(template_slide.get('slide', {}))}
 
         for element_type in ['text', 'image', 'figure']:
             for element in template_slide.get(element_type, []):
@@ -430,7 +425,6 @@ class PPTXManager(
                     result[element_type].append(cloned)
 
         return result
-
 
     def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
         """
@@ -784,7 +778,7 @@ class PPTXManager(
 
 if __name__ == '__main__':
     load_dotenv()
-    pr = PPTXManager("test_data/final_test_1.pptx")
+    pr = PPTXManager('test_data/final_test_1.pptx')
     pr.add_slide_at_position(slide_id=2)
     # presentation_info = pr.get_json_schema()
     # print(presentation_info)
