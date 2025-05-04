@@ -339,6 +339,7 @@ class PPTXManager(
         """
         presentation_info = self.get_json_schema()
         base_format_json = self.set_base_format(presentation_info=presentation_info)
+        print(base_format_json)
         self.create_slide_from_json(slide_id, base_format_json, presentation_info)
         self.parse_presentation()
         return "add new slide"
@@ -381,8 +382,13 @@ class PPTXManager(
                 pass
             return tuple(sorted(signature.items()))
 
+        from collections import defaultdict
+        import copy
+
         element_counter = defaultdict(set)
         slide_keys = [k for k in presentation_info if isinstance(k, int)]
+        total_slides = len(slide_keys)
+
         for slide_num in slide_keys:
             slide = presentation_info[slide_num]
             for element_type in ['text', 'image', 'figure']:
@@ -390,20 +396,41 @@ class PPTXManager(
                     sig = (element_type, create_signature(element, element_type))
                     element_counter[sig].add(slide_num)
 
-        total_slides = len(slide_keys)
-        repeated_signatures = {sig for sig, slides in element_counter.items() if len(slides) == total_slides}
+        repeated_signatures = {sig for sig, slides in element_counter.items()
+                            if len(slides) >= total_slides - 1}
 
-        first_slide = presentation_info[slide_keys[0]]
-        result = {'text': [], 'image': [], 'figure': [], 'slide': copy.deepcopy(first_slide.get('slide', {}))}
+        slide_common_elements_count = {}
+        for slide_num in slide_keys:
+            count = 0
+            slide = presentation_info[slide_num]
+            for element_type in ['text', 'image', 'figure']:
+                for element in slide.get(element_type, []):
+                    sig = (element_type, create_signature(element, element_type))
+                    if sig in repeated_signatures:
+                        count += 1
+            slide_common_elements_count[slide_num] = count
+
+        template_slide_num = max(slide_common_elements_count, key=slide_common_elements_count.get)
+        template_slide = presentation_info[template_slide_num]
+
+        result = {
+            'text': [],
+            'image': [],
+            'figure': [],
+            'slide': copy.deepcopy(template_slide.get('slide', {}))
+        }
+
         for element_type in ['text', 'image', 'figure']:
-            for element in first_slide.get(element_type, []):
+            for element in template_slide.get(element_type, []):
                 sig = (element_type, create_signature(element, element_type))
                 if sig in repeated_signatures:
                     cloned = copy.deepcopy(element)
                     if element_type == 'text':
                         cloned['text'] = 'TEXT'
                     result[element_type].append(cloned)
+
         return result
+
 
     def create_text_shape(self, slide_id: int, opts: CreateTextFrameOpts) -> str:
         """
