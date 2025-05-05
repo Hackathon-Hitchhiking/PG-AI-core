@@ -240,8 +240,8 @@ class PPTXManager(
         """
         try:
             # Дублируем первый слайд на указанную позицию
-            self.duplicate_slide(1, slide_id)
-            slide = self.pres.slides[slide_id]
+            self.duplicate_slide(1, slide_id-1)
+            slide = self.pres.slides[slide_id-1]
 
             slide_json_coordinates = set()
 
@@ -779,7 +779,7 @@ class PPTXManager(
 if __name__ == '__main__':
     load_dotenv()
     pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
-    pr.add_slide_at_position(slide_id=2)
+    pr.add_slide_at_position(slide_id=8)
     # presentation_info = pr.get_json_schema()
     # print(presentation_info)
     pr.save('TestA.pptx')
