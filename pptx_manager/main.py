@@ -778,7 +778,7 @@ class PPTXManager(
 
 if __name__ == '__main__':
     load_dotenv()
-    pr = PPTXManager('test_data/final_test_1.pptx')
+    pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
     pr.add_slide_at_position(slide_id=2)
     # presentation_info = pr.get_json_schema()
     # print(presentation_info)
