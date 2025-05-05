@@ -239,7 +239,8 @@ class PPTXManager(
             str: Сообщение о результате операции.
         """
         try:
-            # Дублируем первый слайд на указанную позицию
+            if slide_id > len(self.pres.slides):
+                slide_id = len(self.pres.slides)+1
             self.duplicate_slide(1, slide_id-1)
             slide = self.pres.slides[slide_id-1]
 
@@ -261,7 +262,7 @@ class PPTXManager(
                     slide_json_coordinates.add(coord)
 
             shapes_to_delete = []
-            tolerance = 4  # Допустимая погрешность в пикселях
+            tolerance = 4
 
             for i, shape in enumerate(slide.shapes):
                 try:
@@ -339,7 +340,6 @@ class PPTXManager(
         """
         presentation_info = self.get_json_schema()
         base_format_json = self.set_base_format(presentation_info=presentation_info)
-        print(base_format_json)
         self.create_slide_from_json(slide_id, base_format_json, presentation_info)
         self.parse_presentation()
         return 'add new slide'
@@ -778,7 +778,7 @@ class PPTXManager(
 
 if __name__ == '__main__':
     load_dotenv()
-    pr = PPTXManager(os.environ.get('TEST_PRES_PATH'))
+    pr = PPTXManager(os.environ.get('TEST_PRES_PATH')) 
     pr.add_slide_at_position(slide_id=8)
     # presentation_info = pr.get_json_schema()
     # print(presentation_info)
