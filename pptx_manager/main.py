@@ -101,6 +101,7 @@ class PPTXManager(
 
                 self.slide_image[idx + 1] = image_buffer.getvalue()
 
+
     def parse_presentation(self) -> None:
         logger.debug(f'Анализ презентации вызван с количеством слайдов = {len(self.pres.slides)}')
         slide_id = 1
@@ -216,14 +217,31 @@ class PPTXManager(
     def get_json_schema(self) -> dict:
         pres_json = {}
         for slide_id in range(1, len(self.pres.slides) + 1):
-            text_json = self.get_text_frame_json(slide_id)
-            image_json = self.get_image_json(slide_id)
-            slide_json = self.get_slide_json(slide_id)
-            figure_json = self.get_figure_frame_json(slide_id)
+            seen = set()
+            filtered = {'text': [], 'image': [], 'figure': []}
+            
+            for elem in self.get_text_frame_json(slide_id):
+                if elem['shape_id'] not in seen:
+                    filtered['text'].append(elem)
+                    seen.add(elem['shape_id'])
+                    
+            for elem in self.get_image_json(slide_id):
+                if elem['shape_id'] not in seen:
+                    filtered['image'].append(elem)
+                    seen.add(elem['shape_id'])
+                    
+            for elem in self.get_figure_frame_json(slide_id):
+                if elem['shape_id'] not in seen:
+                    filtered['figure'].append(elem)
+                    seen.add(elem['shape_id'])
 
-            pres_json[slide_id] = {'text': text_json, 'image': image_json, 'slide': slide_json, 'figure': figure_json}
-
+            pres_json[slide_id] = {
+                **filtered,
+                'slide': self.get_slide_json(slide_id) 
+            }
+            
         return pres_json
+
 
     def create_slide_from_json(self, slide_id: int, slide_json: dict, presentation_info: dict) -> str:
         """
@@ -778,13 +796,17 @@ class PPTXManager(
 
 if __name__ == '__main__':
     load_dotenv()
-    pr = PPTXManager(os.environ.get('TEST_PRES_PATH')) 
+    #pr = PPTXManager(os.environ.get('TEST_PRES_PATH')) 
+    pr = PPTXManager('test_data/final_test_11.pptx') 
     pr.add_slide_at_position(slide_id=8)
-    # presentation_info = pr.get_json_schema()
-    # print(presentation_info)
+
+    pr.update_shape_color(1, 16, color=[255, 0, 0])
+    pr.update_shape_color(1, 17, color=[255, 0, 0])
+    pr.update_shape_color(1, 18, color=[255, 0, 0])
+
     pr.save('TestA.pptx')
 
-    # pr.update_shape_color(3, 1, color=[255, 255, 0])
+   
     # pr.update_shape_line(3, rect1.shape_id, color=(255, 0, 0), width=3.0)
     # pr.update_shape_transparency(3, 1, transparency=1)
     # pr.update_shape_transparency(3, rect1.shape_id, transparency=0.2)
